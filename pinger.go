@@ -2,11 +2,13 @@ package ping
 
 import (
 	"fmt"
-	"golang.org/x/net/icmp"
-	"golang.org/x/net/ipv4"
 	"net"
 	"os"
+	"sync/atomic"
 	"time"
+
+	"golang.org/x/net/icmp"
+	"golang.org/x/net/ipv4"
 )
 
 const (
@@ -21,7 +23,9 @@ type Pinger struct {
 	Timeout  time.Duration // Timeout pro Ping
 }
 
-// Sendet Pings bis einer erfolgreich ist, oder die Versuche ausgeschöpft sind
+var sequence int32
+
+// Ping sendet ICMP echo requests bis einer erfolgreich ist, oder die Versuche ausgeschöpft sind
 func (pinger *Pinger) Ping() error {
 	// Verbindung instanziieren
 	c, err := icmp.ListenPacket("ip4:icmp", pinger.Local.String())
@@ -36,7 +40,7 @@ func (pinger *Pinger) Ping() error {
 		c.SetDeadline(time.Now().Add(pinger.Timeout))
 
 		// Pingen
-		if err = pinger.once(c, i+1); err == nil {
+		if err = pinger.once(c); err == nil {
 			// erfolgreich
 			break
 		}
@@ -46,15 +50,15 @@ func (pinger *Pinger) Ping() error {
 }
 
 // Schickt einen Ping ab und wartet auf Antwort
-func (pinger *Pinger) once(c *icmp.PacketConn, seq int) error {
-
+func (pinger *Pinger) once(c *icmp.PacketConn) error {
 	// Paket bauen
+
 	wm := icmp.Message{
-		Type: ipv4.ICMPTypeEcho, Code: 0,
+		Type: ipv4.ICMPTypeEcho,
+		Code: 0,
 		Body: &icmp.Echo{
-			ID:   os.Getpid() & 0xffff,
-			Seq:  seq,
-			Data: []byte("HELLO-R-U-THERE"),
+			ID:  os.Getpid() & 0xffff,
+			Seq: int(atomic.AddInt32(&sequence, 1)),
 		},
 	}
 
@@ -91,6 +95,6 @@ func (pinger *Pinger) once(c *icmp.PacketConn, seq int) error {
 		return nil
 	default:
 		// Fehler
-		return fmt.Errorf("got %+v; want echo reply", rm)
+		return fmt.Errorf("want echo reply, got: %+v", rm)
 	}
 }
