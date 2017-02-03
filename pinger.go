@@ -11,6 +11,8 @@ import (
 
 	"sync/atomic"
 
+	"fmt"
+
 	"golang.org/x/net/icmp"
 	"golang.org/x/net/ipv4"
 )
@@ -20,8 +22,13 @@ const (
 	ProtocolIPv6ICMP = 58 // ICMP for IPv6
 )
 
-// sequence number for this process
-var sequence uint32
+var (
+	// sequence number for this process
+	sequence uint32
+
+	errTimeout = errors.New("timeout")
+	errClosed  = errors.New("pinger closed")
+)
 
 // Pinger is a instance for ICMP echo requests
 type Pinger struct {
@@ -126,7 +133,7 @@ func (pinger *Pinger) once(remote net.Addr) error {
 	case <-req.wait:
 		err = req.result
 	case <-time.After(pinger.Timeout):
-		err = errors.New("timeout")
+		err = errTimeout
 	}
 
 	// Aus den laufenden Anfragen entfernen
@@ -153,7 +160,7 @@ func (pinger *Pinger) receiver() {
 	// Close running requests
 	pinger.mtx.Lock()
 	for _, req := range pinger.requests {
-		req.respond(errors.New("pinger closed"))
+		req.respond(errClosed)
 	}
 	pinger.mtx.Unlock()
 
@@ -161,40 +168,59 @@ func (pinger *Pinger) receiver() {
 	pinger.wg.Done()
 }
 
-// Processes a ICMP packet
-func (pinger *Pinger) receive(bytes []byte) {
-	// Antwort parsen
-	rm, err := icmp.ParseMessage(ProtocolICMP, bytes)
-	if err != nil {
-		log.Println(err)
+// Responds to a running ICMP request
+func (pinger *Pinger) process(body icmp.MessageBody, result error) {
+	echo := body.(*icmp.Echo)
+	if echo == nil {
 		return
 	}
 
-	// Antwort auswerten
+	// Check ID field
+	if uint16(echo.ID) != pinger.id {
+		return
+	}
+
+	// Search for existing running echo request
+	pinger.mtx.Lock()
+	if req := pinger.requests[uint16(echo.Seq)]; req != nil {
+		req.respond(result)
+	}
+	pinger.mtx.Unlock()
+}
+
+// Processes a ICMP packet
+func (pinger *Pinger) receive(bytes []byte) {
+	// Parse message
+	rm, err := icmp.ParseMessage(ProtocolICMP, bytes)
+	if err != nil {
+		return
+	}
+
+	// Evaluate message
 	switch rm.Type {
 	case ipv4.ICMPTypeEchoReply:
-		body := rm.Body.(*icmp.Echo)
-		if body == nil {
-			return
-		}
+		pinger.process(rm.Body, nil)
 
-		// Check ID field
-		if uint16(body.ID) != pinger.id {
-			return
-		}
-
-		// Search for existing running echo request
-		pinger.mtx.Lock()
-		if req := pinger.requests[uint16(body.Seq)]; req != nil {
-			req.respond(nil)
-		}
-		pinger.mtx.Unlock()
 	case ipv4.ICMPTypeDestinationUnreachable:
 		body := rm.Body.(*icmp.DstUnreach)
 		if body == nil {
 			return
 		}
-		// TODO parse data
+
+		// Parse header of original IP packet
+		hdr, err := ipv4.ParseHeader(body.Data)
+		if err != nil {
+			return
+		}
+
+		// Parse ICMP message after the IP header
+		msg, err := icmp.ParseMessage(ProtocolICMP, body.Data[hdr.Len:])
+		if err != nil {
+			return
+		}
+
+		pinger.process(msg.Body, fmt.Errorf("%s", rm.Type))
+
 	default:
 		// other ICMP packet
 		log.Printf("got: %+v %d", rm, rm.Body.Len(1))
