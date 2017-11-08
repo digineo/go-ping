@@ -1,7 +1,6 @@
 package ping
 
 import (
-	"errors"
 	"log"
 	"net"
 	"os"
@@ -18,16 +17,16 @@ import (
 )
 
 const (
-	ProtocolICMP     = 1  // Internet Control Message
-	ProtocolIPv6ICMP = 58 // ICMP for IPv6
+	// ProtocolICMP is the number of the Internet Control Message Protocol
+	ProtocolICMP = 1
+
+	// ProtocolIPv6ICMP is ICMP for IPv6
+	ProtocolIPv6ICMP = 58
 )
 
 var (
 	// sequence number for this process
 	sequence uint32
-
-	errTimeout = errors.New("timeout")
-	errClosed  = errors.New("pinger closed")
 )
 
 // Pinger is a instance for ICMP echo requests
@@ -133,7 +132,7 @@ func (pinger *Pinger) once(remote net.Addr) error {
 	case <-req.wait:
 		err = req.result
 	case <-time.After(pinger.Timeout):
-		err = errTimeout
+		err = &timeoutError{}
 	}
 
 	// Aus den laufenden Anfragen entfernen
