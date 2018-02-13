@@ -35,10 +35,10 @@ func main() {
 	pinger.Timeout = time.Second * time.Duration(timeout)
 	pinger.Attempts = attempts
 
-	if err := pinger.Ping(remote); err != nil {
+	if rtt, err := pinger.PingRTT(remote); err == nil {
+		fmt.Printf("ping %s (%s) rtt=%v\n", args[0], remote, rtt)
+	} else {
 		fmt.Println(err)
 		os.Exit(1)
-	} else {
-		fmt.Println("ping successful")
 	}
 }
