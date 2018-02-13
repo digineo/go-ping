@@ -3,6 +3,7 @@ package ping
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"golang.org/x/net/icmp"
 	"golang.org/x/net/ipv4"
@@ -18,14 +19,14 @@ func (pinger *Pinger) receiver() {
 		if n, _, err := pinger.conn.ReadFrom(rb); err != nil {
 			break // socket gone
 		} else {
-			pinger.receive(rb[:n])
+			pinger.receive(rb[:n], time.Now())
 		}
 	}
 
 	// close running requests
 	pinger.mtx.Lock()
 	for _, req := range pinger.requests {
-		req.respond(errClosed)
+		req.respond(errClosed, nil)
 	}
 	pinger.mtx.Unlock()
 
@@ -35,7 +36,7 @@ func (pinger *Pinger) receiver() {
 
 // receive takes the raw message and tries to evaluate an ICMP response.
 // If that succeedes, the body will given to process() for further processing.
-func (pinger *Pinger) receive(bytes []byte) {
+func (pinger *Pinger) receive(bytes []byte, t time.Time) {
 	// parse message
 	rm, err := icmp.ParseMessage(ProtocolICMP, bytes)
 	if err != nil {
@@ -45,7 +46,7 @@ func (pinger *Pinger) receive(bytes []byte) {
 	// evaluate message
 	switch rm.Type {
 	case ipv4.ICMPTypeEchoReply:
-		pinger.process(rm.Body, nil)
+		pinger.process(rm.Body, nil, &t)
 
 	case ipv4.ICMPTypeDestinationUnreachable:
 		body := rm.Body.(*icmp.DstUnreach)
@@ -65,7 +66,7 @@ func (pinger *Pinger) receive(bytes []byte) {
 			return
 		}
 
-		pinger.process(msg.Body, fmt.Errorf("%s", rm.Type))
+		pinger.process(msg.Body, fmt.Errorf("%s", rm.Type), nil)
 
 	default:
 		// other ICMP packet
@@ -75,7 +76,7 @@ func (pinger *Pinger) receive(bytes []byte) {
 
 // process will finish a currently running Echo Request, iff the body is
 // an ICMP Echo reply to a request from us.
-func (pinger *Pinger) process(body icmp.MessageBody, result error) {
+func (pinger *Pinger) process(body icmp.MessageBody, result error, tRecv *time.Time) {
 	echo := body.(*icmp.Echo)
 	if echo == nil {
 		return
@@ -89,7 +90,7 @@ func (pinger *Pinger) process(body icmp.MessageBody, result error) {
 	// search for existing running echo request
 	pinger.mtx.Lock()
 	if req := pinger.requests[uint16(echo.Seq)]; req != nil {
-		req.respond(result)
+		req.respond(result, tRecv)
 	}
 	pinger.mtx.Unlock()
 }
