@@ -12,21 +12,28 @@ import (
 // Ping sends ICMP echo requests, retrying upto Pinger.Attempts times.
 // Will finishes early on success.
 func (pinger *Pinger) Ping(remote net.Addr) (err error) {
+	_, err = pinger.PingRTT(remote)
+	return
+}
+
+// PingRTT sends ICMP echo requests, retrying upto Pinger.Attempts times.
+// Will finishes early on success and return the round trip time.
+func (pinger *Pinger) PingRTT(remote net.Addr) (rtt time.Duration, err error) {
 	// multiple attempts
 	for i := uint(0); i < pinger.Attempts; i++ {
 		// set timeout
 		pinger.conn.SetDeadline(time.Now().Add(pinger.Timeout))
 
-		if err = pinger.once(remote); err == nil {
+		if rtt, err = pinger.once(remote); err == nil {
 			break // success
 		}
 	}
-
 	return
 }
 
-// once sends a single Echo Request and waits for an answer.
-func (pinger *Pinger) once(remote net.Addr) error {
+// once sends a single Echo Request and waits for an answer. It returns
+// the round trip time (RTT) if a reply is received in time.
+func (pinger *Pinger) once(remote net.Addr) (time.Duration, error) {
 	seq := uint16(atomic.AddUint32(&sequence, 1))
 	req := request{
 		wait: make(chan struct{}),
@@ -44,7 +51,7 @@ func (pinger *Pinger) once(remote net.Addr) error {
 	// serialize packet
 	wb, err := wm.Marshal(nil)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	// enqueue in currently running requests
@@ -52,9 +59,12 @@ func (pinger *Pinger) once(remote net.Addr) error {
 	pinger.requests[seq] = &req
 	pinger.mtx.Unlock()
 
+	// start measurement (tStop is set in the receiving end)
+	req.tStart = time.Now()
+
 	// send request
 	if _, e := pinger.conn.WriteTo(wb, remote); e != nil {
-		req.respond(e)
+		req.respond(e, nil)
 	}
 
 	// wait for answer
@@ -70,5 +80,8 @@ func (pinger *Pinger) once(remote net.Addr) error {
 	delete(pinger.requests, seq)
 	pinger.mtx.Unlock()
 
-	return err
+	if err != nil {
+		return 0, err
+	}
+	return req.roundTripTime()
 }
