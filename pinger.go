@@ -27,7 +27,7 @@ type Pinger struct {
 	Timeout  time.Duration // timeout per request
 
 	requests map[uint16]*request // currently running requests
-	mtx      sync.Mutex          // lock for the requests map
+	mtx      sync.RWMutex        // lock for the requests map
 	id       uint16
 	conn     *icmp.PacketConn
 	wg       sync.WaitGroup

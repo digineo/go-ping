@@ -24,11 +24,11 @@ func (pinger *Pinger) receiver() {
 	}
 
 	// close running requests
-	pinger.mtx.Lock()
+	pinger.mtx.RLock()
 	for _, req := range pinger.requests {
 		req.respond(errClosed, nil)
 	}
-	pinger.mtx.Unlock()
+	pinger.mtx.RUnlock()
 
 	// Close() waits for us
 	pinger.wg.Done()
@@ -88,9 +88,11 @@ func (pinger *Pinger) process(body icmp.MessageBody, result error, tRecv *time.T
 	}
 
 	// search for existing running echo request
-	pinger.mtx.Lock()
-	if req := pinger.requests[uint16(echo.Seq)]; req != nil {
+	pinger.mtx.RLock()
+	req := pinger.requests[uint16(echo.Seq)]
+	pinger.mtx.RUnlock()
+
+	if req != nil {
 		req.respond(result, tRecv)
 	}
-	pinger.mtx.Unlock()
 }
