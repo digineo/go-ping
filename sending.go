@@ -21,9 +21,6 @@ func (pinger *Pinger) Ping(remote net.Addr) (err error) {
 func (pinger *Pinger) PingRTT(remote net.Addr) (rtt time.Duration, err error) {
 	// multiple attempts
 	for i := uint(0); i < pinger.Attempts; i++ {
-		// set timeout
-		pinger.conn.SetDeadline(time.Now().Add(pinger.Timeout))
-
 		if rtt, err = pinger.once(remote); err == nil {
 			break // success
 		}

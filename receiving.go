@@ -3,6 +3,7 @@ package ping
 import (
 	"fmt"
 	"log"
+	"net"
 	"time"
 
 	"golang.org/x/net/icmp"
@@ -17,7 +18,9 @@ func (pinger *Pinger) receiver() {
 	// read incoming packets
 	for {
 		if n, _, err := pinger.conn.ReadFrom(rb); err != nil {
-			break // socket gone
+			if netErr, ok := err.(net.Error); !ok || !netErr.Temporary() {
+				break // socket gone
+			}
 		} else {
 			pinger.receive(rb[:n], time.Now())
 		}
