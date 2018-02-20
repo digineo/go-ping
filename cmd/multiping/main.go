@@ -20,6 +20,7 @@ type stats struct {
 	received int
 	lost     int
 	results  []time.Duration // ring buffer, index = .received
+	lastErr  error
 	mtx      sync.RWMutex
 }
 
@@ -81,6 +82,7 @@ func main() {
 		instance.Timeout = opts.timeout
 		instance.Attempts = 1
 		opts.pinger = instance
+		defer opts.pinger.Close()
 	} else {
 		panic(err)
 	}
@@ -89,8 +91,9 @@ func main() {
 
 	app := tview.NewApplication()
 	table := tview.NewTable().SetBorders(false).SetFixed(2, 0)
+	table.SetTitle(" multiping (press [q] to exit) ")
 	opts.table = table
-	cols := 8
+	cols := 9
 
 	table.SetCell(0, 0, tview.NewTableCell(fmt.Sprintf("%-60s", "Host")).SetAlign(tview.AlignLeft))
 	table.SetCell(0, 1, tview.NewTableCell("  sent").SetAlign(tview.AlignRight))
@@ -100,6 +103,7 @@ func main() {
 	table.SetCell(0, 5, tview.NewTableCell("  worst").SetAlign(tview.AlignRight))
 	table.SetCell(0, 6, tview.NewTableCell("  mean").SetAlign(tview.AlignRight))
 	table.SetCell(0, 7, tview.NewTableCell("  stddev").SetAlign(tview.AlignRight))
+	table.SetCell(0, 8, tview.NewTableCell("last err").SetAlign(tview.AlignLeft))
 
 	for r, u := range opts.remotes {
 		for c := 0; c < cols; c++ {
@@ -107,6 +111,8 @@ func main() {
 			switch c {
 			case 0:
 				cell = tview.NewTableCell(u.display).SetAlign(tview.AlignLeft)
+			case 8:
+				cell = tview.NewTableCell("").SetAlign(tview.AlignLeft)
 			default:
 				cell = tview.NewTableCell("n/a").SetAlign(tview.AlignRight)
 			}
@@ -116,14 +122,16 @@ func main() {
 
 	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		switch event.Key() {
-		case tcell.KeyEscape:
+		case tcell.KeyEscape, tcell.KeyCtrlC:
 			app.Stop()
+			return nil
 		case tcell.KeyRune:
 			if event.Rune() == 'q' {
 				app.Stop()
+				return nil
 			}
 		}
-		return nil
+		return event
 	})
 
 	go func() {
@@ -140,6 +148,10 @@ func main() {
 				opts.table.GetCell(r, 5).SetText(ts(worst))
 				opts.table.GetCell(r, 6).SetText(ts(mean))
 				opts.table.GetCell(r, 7).SetText(stddev.String())
+
+				if u.lastErr != nil {
+					opts.table.GetCell(r, 8).SetText(fmt.Sprintf("%v", u.lastErr))
+				}
 			}
 			app.Draw()
 			time.Sleep(time.Second)
@@ -149,7 +161,6 @@ func main() {
 	if err := app.SetRoot(table, true).SetFocus(table).Run(); err != nil {
 		panic(err)
 	}
-	opts.pinger.Close()
 }
 
 func work() {
@@ -180,6 +191,7 @@ func (s *stats) addResult(rtt time.Duration, err error) {
 		s.results[s.received%len(s.results)] = rtt
 		s.received++
 	} else {
+		s.lastErr = err
 		s.lost++
 	}
 	s.mtx.Unlock()
