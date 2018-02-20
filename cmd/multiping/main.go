@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -18,6 +19,7 @@ type stats struct {
 	received int
 	lost     int
 	results  []time.Duration // ring buffer, index = .received
+	mtx      sync.RWMutex
 }
 
 type unit struct {
@@ -116,15 +118,20 @@ func (u *unit) ping(pinger *ping.Pinger) {
 }
 
 func (s *stats) addResult(rtt time.Duration, err error) {
+	s.mtx.Lock()
 	if err == nil {
 		s.results[s.received%len(s.results)] = rtt
 		s.received++
 	} else {
 		s.lost++
 	}
+	s.mtx.Unlock()
 }
 
 func (s *stats) compute() (pktSent int, pktLoss float64, last, best, worst, mean, stddev time.Duration) {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+
 	if s.received == 0 {
 		if s.lost > 0 {
 			pktLoss = 1.0
