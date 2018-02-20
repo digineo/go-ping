@@ -6,11 +6,12 @@ import (
 	"log"
 	"math"
 	"net"
-	"os"
-	"os/signal"
+	"strconv"
 	"sync"
-	"syscall"
 	"time"
+
+	"github.com/gdamore/tcell"
+	"github.com/rivo/tview"
 
 	ping "github.com/digineo/go-ping"
 )
@@ -37,6 +38,7 @@ var opts = struct {
 	remotes        []unit
 
 	pinger *ping.Pinger
+	table  *tview.Table
 }{
 	timeout:        1000 * time.Millisecond,
 	interval:       1000 * time.Millisecond,
@@ -85,16 +87,69 @@ func main() {
 
 	go work()
 
-	ch := make(chan os.Signal)
-	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
-	log.Printf("[interrupt received] %s", <-ch)
+	app := tview.NewApplication()
+	table := tview.NewTable().SetBorders(false).SetFixed(2, 0)
+	opts.table = table
+	cols := 8
 
-	opts.pinger.Close()
-	log.Println("---- statistics: best/worst/mean/stddev ----")
-	for _, u := range opts.remotes {
-		sent, lost, _, best, worst, mean, std := u.compute()
-		log.Printf("%-40s sent %d (%0.1f%% loss) %v/%v/%v/%v", u.display, sent, lost, best, worst, mean, std)
+	table.SetCell(0, 0, tview.NewTableCell(fmt.Sprintf("%-60s", "Host")).SetAlign(tview.AlignLeft))
+	table.SetCell(0, 1, tview.NewTableCell("  sent").SetAlign(tview.AlignRight))
+	table.SetCell(0, 2, tview.NewTableCell("  loss").SetAlign(tview.AlignRight))
+	table.SetCell(0, 3, tview.NewTableCell("  last").SetAlign(tview.AlignRight))
+	table.SetCell(0, 4, tview.NewTableCell("  best").SetAlign(tview.AlignRight))
+	table.SetCell(0, 5, tview.NewTableCell("  worst").SetAlign(tview.AlignRight))
+	table.SetCell(0, 6, tview.NewTableCell("  mean").SetAlign(tview.AlignRight))
+	table.SetCell(0, 7, tview.NewTableCell("  stddev").SetAlign(tview.AlignRight))
+
+	for r, u := range opts.remotes {
+		for c := 0; c < cols; c++ {
+			var cell *tview.TableCell
+			switch c {
+			case 0:
+				cell = tview.NewTableCell(u.display).SetAlign(tview.AlignLeft)
+			default:
+				cell = tview.NewTableCell("n/a").SetAlign(tview.AlignRight)
+			}
+			table.SetCell(r+2, c, cell)
+		}
 	}
+
+	app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		switch event.Key() {
+		case tcell.KeyEscape:
+			app.Stop()
+		case tcell.KeyRune:
+			if event.Rune() == 'q' {
+				app.Stop()
+			}
+		}
+		return nil
+	})
+
+	go func() {
+		time.Sleep(time.Second)
+		for {
+			for i, u := range opts.remotes {
+				sent, lost, last, best, worst, mean, stddev := u.compute()
+				r := i + 2
+
+				opts.table.GetCell(r, 1).SetText(strconv.Itoa(sent))
+				opts.table.GetCell(r, 2).SetText(fmt.Sprintf("%0.2f%%", lost))
+				opts.table.GetCell(r, 3).SetText(ts(last))
+				opts.table.GetCell(r, 4).SetText(ts(best))
+				opts.table.GetCell(r, 5).SetText(ts(worst))
+				opts.table.GetCell(r, 6).SetText(ts(mean))
+				opts.table.GetCell(r, 7).SetText(stddev.String())
+			}
+			app.Draw()
+			time.Sleep(time.Second)
+		}
+	}()
+
+	if err := app.SetRoot(table, true).SetFocus(table).Run(); err != nil {
+		panic(err)
+	}
+	opts.pinger.Close()
 }
 
 func work() {
@@ -106,15 +161,17 @@ func work() {
 	}
 }
 
-func (u *unit) ping(pinger *ping.Pinger) {
-	rtt, err := pinger.PingRTT(u.remote)
-	u.addResult(rtt, err)
+const tsDividend = float64(time.Millisecond) / float64(time.Nanosecond)
 
-	if err == nil {
-		log.Printf("%-40s rtt=%v", u.display, rtt)
-	} else {
-		log.Printf("%-40s err=%v", u.display, err)
+func ts(dur time.Duration) string {
+	if time.Millisecond < dur && dur < time.Second {
+		return fmt.Sprintf("%0.2fms", float64(dur.Nanoseconds())/tsDividend)
 	}
+	return dur.String()
+}
+
+func (u *unit) ping(pinger *ping.Pinger) {
+	u.addResult(pinger.PingRTT(u.remote))
 }
 
 func (s *stats) addResult(rtt time.Duration, err error) {
