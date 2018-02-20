@@ -165,8 +165,11 @@ func main() {
 
 func work() {
 	for {
-		for _, u := range opts.remotes {
-			go func(u unit) { u.ping(opts.pinger) }(u)
+		for i, u := range opts.remotes {
+			go func(u unit, i int) {
+				time.Sleep(time.Duration(i) * time.Millisecond)
+				u.ping(opts.pinger)
+			}(u, i)
 		}
 		time.Sleep(opts.interval)
 	}
