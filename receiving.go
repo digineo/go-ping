@@ -80,8 +80,9 @@ func (pinger *Pinger) receive(bytes []byte, t time.Time) {
 // process will finish a currently running Echo Request, iff the body is
 // an ICMP Echo reply to a request from us.
 func (pinger *Pinger) process(body icmp.MessageBody, result error, tRecv *time.Time) {
-	echo := body.(*icmp.Echo)
-	if echo == nil {
+	echo, ok := body.(*icmp.Echo)
+	if !ok || echo == nil {
+		log.Printf("expected *icmp.Echo, got %#v", body)
 		return
 	}
 
