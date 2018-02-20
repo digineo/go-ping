@@ -71,6 +71,9 @@ func (pinger *Pinger) receive(bytes []byte, t time.Time) {
 
 		pinger.process(msg.Body, fmt.Errorf("%s", rm.Type), nil)
 
+	case ipv4.ICMPTypeEcho:
+		// ignore
+
 	default:
 		// other ICMP packet
 		log.Printf("got: %+v %d", rm, rm.Body.Len(1))
