@@ -178,7 +178,7 @@ func work() {
 const tsDividend = float64(time.Millisecond) / float64(time.Nanosecond)
 
 func ts(dur time.Duration) string {
-	if time.Millisecond < dur && dur < time.Second {
+	if 10*time.Microsecond < dur && dur < time.Second {
 		return fmt.Sprintf("%0.2fms", float64(dur.Nanoseconds())/tsDividend)
 	}
 	return dur.String()
