@@ -35,7 +35,8 @@ var opts = struct {
 	timeout        time.Duration
 	interval       time.Duration
 	statBufferSize uint
-	bind           string
+	bind4          string
+	bind6          string
 	remotes        []unit
 
 	pinger *ping.Pinger
@@ -43,7 +44,8 @@ var opts = struct {
 }{
 	timeout:        1000 * time.Millisecond,
 	interval:       1000 * time.Millisecond,
-	bind:           "0.0.0.0",
+	bind4:          "0.0.0.0",
+	bind6:          "::",
 	statBufferSize: 50,
 }
 
@@ -51,7 +53,8 @@ func main() {
 	flag.DurationVar(&opts.timeout, "timeout", opts.timeout, "timeout for a single echo request")
 	flag.DurationVar(&opts.interval, "interval", opts.interval, "polling interval")
 	flag.UintVar(&opts.statBufferSize, "buf", opts.statBufferSize, "buffer size for statistics")
-	flag.StringVar(&opts.bind, "bind", opts.bind, "bind address")
+	flag.StringVar(&opts.bind4, "bind4", opts.bind4, "IPv4 bind address")
+	flag.StringVar(&opts.bind6, "bind6", opts.bind6, "IPv6 bind address")
 	flag.Parse()
 
 	log.SetFlags(0)
@@ -78,7 +81,7 @@ func main() {
 		}
 	}
 
-	if instance, err := ping.New(opts.bind); err == nil {
+	if instance, err := ping.New(opts.bind4); err == nil {
 		instance.Timeout = opts.timeout
 		instance.Attempts = 1
 		opts.pinger = instance
