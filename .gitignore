@@ -17,3 +17,4 @@
 cmd/multiping/multiping
 cmd/multiping/multiping.log
 cmd/ping-test/ping-test
+cmd/ping-test/ping-test.log
