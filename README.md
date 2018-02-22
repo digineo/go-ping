@@ -16,7 +16,7 @@ fully working examples.
 
 - [x] IPv4 support
 - [x] retry/timeout
-- [ ] ICMP6/IPv6 support
+- [x] ICMP6/IPv6 support
 - [ ] tests
 
 ## License

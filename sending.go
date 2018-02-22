@@ -7,18 +7,19 @@ import (
 
 	"golang.org/x/net/icmp"
 	"golang.org/x/net/ipv4"
+	"golang.org/x/net/ipv6"
 )
 
 // Ping sends ICMP echo requests, retrying upto Pinger.Attempts times.
-// Will finishes early on success.
-func (pinger *Pinger) Ping(remote net.Addr) (err error) {
+// Will finish early on success.
+func (pinger *Pinger) Ping(remote *net.IPAddr) (err error) {
 	_, err = pinger.PingRTT(remote)
 	return
 }
 
 // PingRTT sends ICMP echo requests, retrying upto Pinger.Attempts times.
-// Will finishes early on success and return the round trip time.
-func (pinger *Pinger) PingRTT(remote net.Addr) (rtt time.Duration, err error) {
+// Will finish early on success and return the round trip time.
+func (pinger *Pinger) PingRTT(remote *net.IPAddr) (rtt time.Duration, err error) {
 	// multiple attempts
 	for i := uint(0); i < pinger.Attempts; i++ {
 		if rtt, err = pinger.once(remote); err == nil {
@@ -30,7 +31,7 @@ func (pinger *Pinger) PingRTT(remote net.Addr) (rtt time.Duration, err error) {
 
 // once sends a single Echo Request and waits for an answer. It returns
 // the round trip time (RTT) if a reply is received in time.
-func (pinger *Pinger) once(remote net.Addr) (time.Duration, error) {
+func (pinger *Pinger) once(remote *net.IPAddr) (time.Duration, error) {
 	seq := uint16(atomic.AddUint32(&sequence, 1))
 	req := request{
 		wait: make(chan struct{}),
@@ -38,13 +39,23 @@ func (pinger *Pinger) once(remote net.Addr) (time.Duration, error) {
 
 	// build packet
 	wm := icmp.Message{
-		Type: ipv4.ICMPTypeEcho,
 		Code: 0,
 		Body: &icmp.Echo{
 			ID:  int(pinger.id),
 			Seq: int(seq),
 		},
 	}
+
+	// Protocol specifics
+	var conn *icmp.PacketConn
+	if remote.IP.To4() != nil {
+		wm.Type = ipv4.ICMPTypeEcho
+		conn = pinger.conn4
+	} else {
+		wm.Type = ipv6.ICMPTypeEchoRequest
+		conn = pinger.conn6
+	}
+
 	// serialize packet
 	wb, err := wm.Marshal(nil)
 	if err != nil {
@@ -60,7 +71,7 @@ func (pinger *Pinger) once(remote net.Addr) (time.Duration, error) {
 	req.tStart = time.Now()
 
 	// send request
-	if _, e := pinger.conn.WriteTo(wb, remote); e != nil {
+	if _, e := conn.WriteTo(wb, remote); e != nil {
 		req.respond(e, nil)
 	}
 

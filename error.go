@@ -3,7 +3,8 @@ package ping
 import "errors"
 
 var (
-	errClosed = errors.New("pinger closed")
+	errClosed   = errors.New("pinger closed")
+	errNotBound = errors.New("need at least one bind address")
 )
 
 // timeoutError implementes the net.Error interface. Originally taken from

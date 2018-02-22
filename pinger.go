@@ -12,8 +12,8 @@ const (
 	// ProtocolICMP is the number of the Internet Control Message Protocol
 	ProtocolICMP = 1
 
-	// ProtocolIPv6ICMP is ICMP for IPv6
-	ProtocolIPv6ICMP = 58
+	// ProtocolICMPv6 is the IPv6 Next Header value for ICMPv6
+	ProtocolICMPv6 = 58
 )
 
 // sequence number for this process
@@ -27,33 +27,64 @@ type Pinger struct {
 	requests map[uint16]*request // currently running requests
 	mtx      sync.RWMutex        // lock for the requests map
 	id       uint16
-	conn     *icmp.PacketConn
+	conn4    *icmp.PacketConn
+	conn6    *icmp.PacketConn
 	wg       sync.WaitGroup
 }
 
 // New creates a new Pinger. This will open the raw socket and start the
 // receiving logic. You'll need to call Close() to cleanup.
-func New(bind string) (*Pinger, error) {
-	// Socket öffnen
-	conn, err := icmp.ListenPacket("ip4:icmp", bind)
+func New(bind4, bind6 string) (*Pinger, error) {
+	// open sockets
+	conn4, err := connectICMP("ip4:icmp", bind4)
 	if err != nil {
 		return nil, err
 	}
 
+	conn6, err := connectICMP("ip6:ipv6-icmp", bind6)
+	if err != nil {
+		return nil, err
+	}
+
+	if conn4 == nil && conn6 == nil {
+		return nil, errNotBound
+	}
+
 	pinger := Pinger{
-		conn:     conn,
+		conn4:    conn4,
+		conn6:    conn6,
 		id:       uint16(os.Getpid()),
 		requests: make(map[uint16]*request),
 	}
 
-	pinger.wg.Add(1)
-	go pinger.receiver()
+	if conn4 != nil {
+		pinger.wg.Add(1)
+		go pinger.receiver(ProtocolICMP, pinger.conn4)
+	}
+	if conn6 != nil {
+		pinger.wg.Add(1)
+		go pinger.receiver(ProtocolICMPv6, pinger.conn6)
+	}
 
 	return &pinger, nil
 }
 
 // Close will close the ICMP socket.
 func (pinger *Pinger) Close() {
-	pinger.conn.Close()
+	if pinger.conn4 != nil {
+		pinger.conn4.Close()
+	}
+	if pinger.conn6 != nil {
+		pinger.conn6.Close()
+	}
 	pinger.wg.Wait()
+}
+
+// connectICMP opens a new ICMP connection, iff network is not emtpy.
+func connectICMP(network, address string) (*icmp.PacketConn, error) {
+	if network == "" {
+		return nil, nil
+	}
+
+	return icmp.ListenPacket(network, address)
 }
