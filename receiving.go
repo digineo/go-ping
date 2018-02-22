@@ -8,21 +8,22 @@ import (
 
 	"golang.org/x/net/icmp"
 	"golang.org/x/net/ipv4"
+	"golang.org/x/net/ipv6"
 )
 
 // receiver listens on the raw socket and correlates ICMP Echo Replys with
 // currently running requests.
-func (pinger *Pinger) receiver() {
+func (pinger *Pinger) receiver(proto int, conn *icmp.PacketConn) {
 	rb := make([]byte, 1500)
 
 	// read incoming packets
 	for {
-		if n, _, err := pinger.conn.ReadFrom(rb); err != nil {
+		if n, _, err := conn.ReadFrom(rb); err != nil {
 			if netErr, ok := err.(net.Error); !ok || !netErr.Temporary() {
 				break // socket gone
 			}
 		} else {
-			pinger.receive(rb[:n], time.Now())
+			pinger.receive(proto, rb[:n], time.Now())
 		}
 	}
 
@@ -39,44 +40,51 @@ func (pinger *Pinger) receiver() {
 
 // receive takes the raw message and tries to evaluate an ICMP response.
 // If that succeedes, the body will given to process() for further processing.
-func (pinger *Pinger) receive(bytes []byte, t time.Time) {
+func (pinger *Pinger) receive(proto int, bytes []byte, t time.Time) {
 	// parse message
-	rm, err := icmp.ParseMessage(ProtocolICMP, bytes)
+	m, err := icmp.ParseMessage(proto, bytes)
 	if err != nil {
 		return
 	}
 
 	// evaluate message
-	switch rm.Type {
-	case ipv4.ICMPTypeEchoReply:
-		pinger.process(rm.Body, nil, &t)
+	switch m.Type {
+	case ipv4.ICMPTypeEchoReply, ipv6.ICMPTypeEchoReply:
+		pinger.process(m.Body, nil, &t)
 
-	case ipv4.ICMPTypeDestinationUnreachable:
-		body := rm.Body.(*icmp.DstUnreach)
+	case ipv4.ICMPTypeDestinationUnreachable, ipv6.ICMPTypeDestinationUnreachable:
+		body := m.Body.(*icmp.DstUnreach)
 		if body == nil {
 			return
 		}
 
-		// parse header of original IP packet
-		hdr, err := ipv4.ParseHeader(body.Data)
-		if err != nil {
+		var bodyData []byte
+		switch proto {
+		case ProtocolICMP:
+			// parse header of original IPv4 packet
+			hdr, err := ipv4.ParseHeader(body.Data)
+			if err != nil {
+				return
+			}
+			bodyData = body.Data[hdr.Len:]
+		case ProtocolICMPv6:
+			// parse header of original IPv6 packet (we don't need the actual
+			// header, but want to detect parsing errors)
+			_, err := ipv6.ParseHeader(body.Data)
+			if err != nil {
+				return
+			}
+			bodyData = body.Data[ipv6.HeaderLen:]
+		default:
 			return
 		}
 
 		// parse ICMP message after the IP header
-		msg, err := icmp.ParseMessage(ProtocolICMP, body.Data[hdr.Len:])
+		msg, err := icmp.ParseMessage(proto, bodyData)
 		if err != nil {
 			return
 		}
-
-		pinger.process(msg.Body, fmt.Errorf("%s", rm.Type), nil)
-
-	case ipv4.ICMPTypeEcho:
-		// ignore
-
-	default:
-		// other ICMP packet
-		log.Printf("got: %+v %d", rm, rm.Body.Len(1))
+		pinger.process(msg.Body, fmt.Errorf("%s", m.Type), nil)
 	}
 }
 
