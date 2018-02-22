@@ -43,6 +43,9 @@ func New(bind4, bind6 string) (*Pinger, error) {
 
 	conn6, err := connectICMP("ip6:ipv6-icmp", bind6)
 	if err != nil {
+		if conn4 != nil {
+			conn4.Close()
+		}
 		return nil, err
 	}
 
