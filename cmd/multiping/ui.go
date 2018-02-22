@@ -15,6 +15,64 @@ type userInterface struct {
 	destinations []*destination
 }
 
+var coldef = [...]struct {
+	title   string
+	align   int
+	initVal func(*destination) string
+	content func(*stat) string
+}{
+	{
+		title:   "host",
+		align:   tview.AlignLeft,
+		initVal: func(d *destination) string { return d.host },
+	},
+	{
+		title:   "address",
+		align:   tview.AlignLeft,
+		initVal: func(d *destination) string { return d.remote.IP.String() },
+	},
+	{
+		title:   "sent",
+		align:   tview.AlignRight,
+		content: func(st *stat) string { return strconv.Itoa(st.pktSent) },
+	},
+	{
+		title:   "loss",
+		align:   tview.AlignRight,
+		content: func(st *stat) string { return fmt.Sprintf("%0.2f%%", st.pktLoss) },
+	},
+	{
+		title:   "last",
+		align:   tview.AlignRight,
+		content: func(st *stat) string { return ts(st.last) },
+	},
+	{
+		title:   "best",
+		align:   tview.AlignRight,
+		content: func(st *stat) string { return ts(st.best) },
+	},
+	{
+		title:   "worst",
+		align:   tview.AlignRight,
+		content: func(st *stat) string { return ts(st.worst) },
+	},
+	{
+		title:   "mean",
+		align:   tview.AlignRight,
+		content: func(st *stat) string { return ts(st.mean) },
+	},
+	{
+		title:   "stddev",
+		align:   tview.AlignRight,
+		content: func(st *stat) string { return st.stddev.String() },
+	},
+	{
+		title:   "last err",
+		align:   tview.AlignLeft,
+		content: func(st *stat) string { return st.lastError },
+	},
+}
+
 func buildTUI(destinations []*destination) *userInterface {
 	ui := &userInterface{
 		app:          tview.NewApplication(),
@@ -24,16 +82,9 @@ func buildTUI(destinations []*destination) *userInterface {
 
 	ui.table.SetTitle(" multiping (press [q] to exit) ")
 
-	ui.table.SetCell(0, 0, tview.NewTableCell("host").SetAlign(tview.AlignLeft))
-	ui.table.SetCell(0, 1, tview.NewTableCell("address").SetAlign(tview.AlignLeft))
-	ui.table.SetCell(0, 2, tview.NewTableCell("sent").SetAlign(tview.AlignRight))
-	ui.table.SetCell(0, 3, tview.NewTableCell("loss").SetAlign(tview.AlignRight))
-	ui.table.SetCell(0, 4, tview.NewTableCell("last").SetAlign(tview.AlignRight))
-	ui.table.SetCell(0, 5, tview.NewTableCell("best").SetAlign(tview.AlignRight))
-	ui.table.SetCell(0, 6, tview.NewTableCell("worst").SetAlign(tview.AlignRight))
-	ui.table.SetCell(0, 7, tview.NewTableCell("mean").SetAlign(tview.AlignRight))
-	ui.table.SetCell(0, 8, tview.NewTableCell("stddev").SetAlign(tview.AlignRight))
-	ui.table.SetCell(0, 9, tview.NewTableCell("last err").SetAlign(tview.AlignLeft))
+	for col, def := range coldef {
+		ui.table.SetCell(0, col, tview.NewTableCell(def.title).SetAlign(def.align))
+	}
 
 	ui.app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		switch event.Key() {
@@ -49,21 +100,15 @@ func buildTUI(destinations []*destination) *userInterface {
 		return event
 	})
 
-	cols := 10
-	for r, u := range destinations {
-		for c := 0; c < cols; c++ {
+	for r, dst := range destinations {
+		for c, def := range coldef {
 			var cell *tview.TableCell
-			switch c {
-			case 0:
-				cell = tview.NewTableCell(u.host).SetAlign(tview.AlignLeft)
-			case 1:
-				cell = tview.NewTableCell(u.remote.IP.String()).SetAlign(tview.AlignLeft)
-			case 9:
-				cell = tview.NewTableCell("").SetAlign(tview.AlignLeft)
-			default:
-				cell = tview.NewTableCell("n/a").SetAlign(tview.AlignRight)
+			if def.initVal != nil {
+				cell = tview.NewTableCell(def.initVal(dst))
+			} else {
+				cell = tview.NewTableCell("n/a")
 			}
-			ui.table.SetCell(r+2, c, cell)
+			ui.table.SetCell(r+2, c, cell.SetAlign(def.align))
 		}
 	}
 
@@ -82,16 +127,14 @@ func (ui *userInterface) update(interval time.Duration) {
 			stats := u.compute()
 			r := i + 2
 
-			ui.table.GetCell(r, 2).SetText(strconv.Itoa(stats.sent))
-			ui.table.GetCell(r, 3).SetText(fmt.Sprintf("%0.2f%%", stats.loss))
-			ui.table.GetCell(r, 4).SetText(ts(stats.last))
-			ui.table.GetCell(r, 5).SetText(ts(stats.best))
-			ui.table.GetCell(r, 6).SetText(ts(stats.worst))
-			ui.table.GetCell(r, 7).SetText(ts(stats.mean))
-			ui.table.GetCell(r, 8).SetText(stats.stddev.String())
-
 			if u.lastErr != nil {
-				ui.table.GetCell(r, 8).SetText(fmt.Sprintf("%v", u.lastErr))
+				stats.lastError = u.lastErr.Error()
+			}
+
+			for col, def := range coldef {
+				if def.content != nil {
+					ui.table.GetCell(r, col).SetText(def.content(&stats))
+				}
 			}
 		}
 		ui.app.Draw()
