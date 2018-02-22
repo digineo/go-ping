@@ -79,9 +79,9 @@ func (pinger *Pinger) Close() {
 	pinger.wg.Wait()
 }
 
-// connectICMP opens a new ICMP connection, iff network is not emtpy.
+// connectICMP opens a new ICMP connection, iff network and address are not emtpy.
 func connectICMP(network, address string) (*icmp.PacketConn, error) {
-	if network == "" {
+	if network == "" || address == "" {
 		return nil, nil
 	}
 
