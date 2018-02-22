@@ -9,7 +9,7 @@ import (
 	ping "github.com/digineo/go-ping"
 )
 
-type stats struct {
+type history struct {
 	received int
 	lost     int
 	results  []time.Duration // ring buffer, index = .received
@@ -21,14 +21,14 @@ type destination struct {
 	host    string
 	remote  *net.IPAddr
 	display string
-	*stats
+	*history
 }
 
 func (u *destination) ping(pinger *ping.Pinger) {
 	u.addResult(pinger.PingRTT(u.remote))
 }
 
-func (s *stats) addResult(rtt time.Duration, err error) {
+func (s *history) addResult(rtt time.Duration, err error) {
 	s.mtx.Lock()
 	if err == nil {
 		s.results[s.received%len(s.results)] = rtt
@@ -40,7 +40,7 @@ func (s *stats) addResult(rtt time.Duration, err error) {
 	s.mtx.Unlock()
 }
 
-func (s *stats) compute() (pktSent int, pktLoss float64, last, best, worst, mean, stddev time.Duration) {
+func (s *history) compute() (pktSent int, pktLoss float64, last, best, worst, mean, stddev time.Duration) {
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
 
