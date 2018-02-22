@@ -12,7 +12,7 @@ import (
 type history struct {
 	received int
 	lost     int
-	results  []time.Duration // ring buffer, index = .received
+	results  []time.Duration // ring, start index = .received%len
 	lastErr  error
 	mtx      sync.RWMutex
 }
@@ -65,14 +65,15 @@ func (s *history) compute() (st stat) {
 	collection := s.results[:]
 	st.pktSent = s.received + s.lost
 	size := len(s.results)
+	st.last = collection[(s.received-1)%size]
 
-	if s.received < size {
+	// we don't yet have filled the buffer
+	if s.received <= size {
 		collection = s.results[:s.received]
 		size = s.received
 	}
 
-	st.last = collection[s.received%size]
-	st.pktLoss = float64(s.lost) / float64(size)
+	st.pktLoss = float64(s.lost) / float64(s.received+s.lost)
 	st.best, st.worst = collection[0], collection[0]
 
 	total := time.Duration(0)
@@ -86,13 +87,13 @@ func (s *history) compute() (st stat) {
 		total += rtt
 	}
 
-	st.mean = time.Duration(float64(total) / float64(s.received))
+	st.mean = time.Duration(float64(total) / float64(size))
 
 	stddevNum := float64(0)
 	for _, rtt := range collection {
 		stddevNum += math.Pow(float64(rtt-st.mean), 2)
 	}
-	st.stddev = time.Duration(math.Sqrt(stddevNum / float64(st.mean)))
+	st.stddev = time.Duration(math.Sqrt(stddevNum / float64(size)))
 
 	return
 }
