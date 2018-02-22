@@ -74,12 +74,8 @@ func New(bind4, bind6 string) (*Pinger, error) {
 
 // Close will close the ICMP socket.
 func (pinger *Pinger) Close() {
-	if pinger.conn4 != nil {
-		pinger.conn4.Close()
-	}
-	if pinger.conn6 != nil {
-		pinger.conn6.Close()
-	}
+	pinger.close(pinger.conn4)
+	pinger.close(pinger.conn6)
 	pinger.wg.Wait()
 }
 
@@ -90,4 +86,10 @@ func connectICMP(network, address string) (*icmp.PacketConn, error) {
 	}
 
 	return icmp.ListenPacket(network, address)
+}
+
+func (pinger *Pinger) close(conn *icmp.PacketConn) {
+	if conn != nil {
+		conn.Close()
+	}
 }
