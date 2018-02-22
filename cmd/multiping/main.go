@@ -2,29 +2,29 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
-	"net"
 	"time"
 
 	ping "github.com/digineo/go-ping"
 )
 
 var opts = struct {
-	timeout        time.Duration
-	interval       time.Duration
-	payloadSize    uint
-	statBufferSize uint
-	bind4          string
-	bind6          string
-	dests          []*destination
+	timeout         time.Duration
+	interval        time.Duration
+	payloadSize     uint
+	statBufferSize  uint
+	bind4           string
+	bind6           string
+	dests           []*destination
+	resolverTimeout time.Duration
 }{
-	timeout:        1000 * time.Millisecond,
-	interval:       1000 * time.Millisecond,
-	bind4:          "0.0.0.0",
-	bind6:          "::",
-	payloadSize:    56,
-	statBufferSize: 50,
+	timeout:         1000 * time.Millisecond,
+	interval:        1000 * time.Millisecond,
+	bind4:           "0.0.0.0",
+	bind6:           "::",
+	payloadSize:     56,
+	statBufferSize:  50,
+	resolverTimeout: 1500 * time.Millisecond,
 }
 
 var (
@@ -39,29 +39,29 @@ func main() {
 	flag.UintVar(&opts.statBufferSize, "buf", opts.statBufferSize, "buffer size for statistics")
 	flag.StringVar(&opts.bind4, "bind4", opts.bind4, "IPv4 bind address")
 	flag.StringVar(&opts.bind6, "bind6", opts.bind6, "IPv6 bind address")
+	flag.DurationVar(&opts.resolverTimeout, "resolve", opts.resolverTimeout, "timeout for DNS lookups")
 	flag.Parse()
 
 	log.SetFlags(0)
 
-	for _, arg := range flag.Args() {
-		if remote, err := net.ResolveIPAddr("ip4", arg); err == nil {
+	for _, host := range flag.Args() {
+		remotes, err := resolve(host, opts.resolverTimeout)
+		if err != nil {
+			log.Printf("error resolving host %s: %v", host, err)
+			continue
+		}
+
+		for _, remote := range remotes {
+			ipaddr := remote // need to create a copy
 			dst := destination{
-				host:   arg,
-				remote: remote,
+				host:   host,
+				remote: &ipaddr,
 				stats: &stats{
 					results: make([]time.Duration, opts.statBufferSize),
 				},
 			}
 
-			if arg == remote.String() {
-				dst.display = arg
-			} else {
-				dst.display = fmt.Sprintf("%s (%s)", arg, remote)
-			}
-
 			opts.dests = append(opts.dests, &dst)
-		} else {
-			log.Printf("host %s: %v", arg, err)
 		}
 	}
 
