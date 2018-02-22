@@ -6,8 +6,8 @@ var (
 	errClosed = errors.New("pinger closed")
 )
 
-// Taken from:
-// https://github.com/golang/go/blob/master/src/net/net.go#L417-L421.
+// timeoutError implementes the net.Error interface. Originally taken from
+// https://github.com/golang/go/blob/release-branch.go1.8/src/net/net.go#L505-L509
 type timeoutError struct{}
 
 func (e *timeoutError) Error() string   { return "i/o timeout" }
