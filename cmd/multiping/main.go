@@ -56,7 +56,7 @@ func main() {
 			dst := destination{
 				host:   host,
 				remote: &ipaddr,
-				stats: &stats{
+				history: &history{
 					results: make([]time.Duration, opts.statBufferSize),
 				},
 			}
