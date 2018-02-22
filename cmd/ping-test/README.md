@@ -27,16 +27,20 @@ To circumvent this, either run the binary as root, e.g. via `sudo`
  *(not recommended!)*
 
 ```
-$ sudo ./ping-test golang.org
+$ sudo ./ping-test -4 golang.org
 ping golang.org (216.58.211.113) rtt=11.869403ms
+$ sudo ./ping-test -6 golang.org
+ping golang.org (2a00:1450:400e:809::2011) rtt=11.412907ms
 ```
 
 Better yet, allow the binary to only open raw sockets (via `capabilities(7)`):
 
 ```
 $ sudo setcap cap_net_raw+ep ./ping-test
-$ ./ping-test golang.org
+$ ./ping-test -4 golang.org
 ping golang.org (216.58.211.113) rtt=11.772573ms
+$ ./ping-test -6 golang.org
+ping golang.org (2a00:1450:400e:809::2011) rtt=11.31439ms
 ```
 
 Note, that you'll need to re-apply the `setcap` command everytime the
