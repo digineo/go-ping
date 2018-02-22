@@ -63,7 +63,7 @@ Usage of multiping:
   - drop columns, when screen is to small
   - move "last error" column into a log area at the bottom
   - increase/decrease interval and/or timeout with `-`/`+` keys
-- [ ] fill IPv6 options with live (once the library has IPv6 support)
+- [ ] fill IPv6 options with life (once the library has IPv6 support)
 - [ ] use something more sophisticated than `net.ResolveIPAddress` to
   get a list of all A/AAAA records for a given domain name
   - this propably needs an off-switch
