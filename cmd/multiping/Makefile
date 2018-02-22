@@ -1,15 +1,6 @@
 TARGET = multiping
 
-.PHONY: all
-all: $(TARGET)
-
-$(TARGET):
-	go build -o $@
-	sudo setcap cap_net_raw+ep $<
-
-.PHONY: clean
-clean:
-	rm -f $(TARGET) $(TARGET).log
+include ../common.mk
 
 .PHONY: test
 test: all
