@@ -1,7 +1,6 @@
 package ping
 
 import (
-	"net"
 	"os"
 	"sync"
 	"time"
@@ -22,7 +21,6 @@ var sequence uint32
 
 // Pinger is a instance for ICMP echo requests
 type Pinger struct {
-	Local    net.IP        // IP address to bind on
 	Attempts uint          // number of attempts
 	Timeout  time.Duration // timeout per request
 
