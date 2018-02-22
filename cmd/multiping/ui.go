@@ -39,7 +39,7 @@ var coldef = [...]struct {
 	{
 		title:   "loss",
 		align:   tview.AlignRight,
-		content: func(st *stat) string { return fmt.Sprintf("%0.2f%%", st.pktLoss) },
+		content: func(st *stat) string { return fmt.Sprintf("%0.1f%%", st.pktLoss*100) },
 	},
 	{
 		title:   "last",
