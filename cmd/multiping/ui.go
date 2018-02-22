@@ -79,16 +79,16 @@ func (ui *userInterface) update(interval time.Duration) {
 	time.Sleep(interval)
 	for {
 		for i, u := range ui.destinations {
-			sent, loss, last, best, worst, mean, stddev := u.compute()
+			stats := u.compute()
 			r := i + 2
 
-			ui.table.GetCell(r, 2).SetText(strconv.Itoa(sent))
-			ui.table.GetCell(r, 3).SetText(fmt.Sprintf("%0.2f%%", loss))
-			ui.table.GetCell(r, 4).SetText(ts(last))
-			ui.table.GetCell(r, 5).SetText(ts(best))
-			ui.table.GetCell(r, 6).SetText(ts(worst))
-			ui.table.GetCell(r, 7).SetText(ts(mean))
-			ui.table.GetCell(r, 8).SetText(stddev.String())
+			ui.table.GetCell(r, 2).SetText(strconv.Itoa(stats.sent))
+			ui.table.GetCell(r, 3).SetText(fmt.Sprintf("%0.2f%%", stats.loss))
+			ui.table.GetCell(r, 4).SetText(ts(stats.last))
+			ui.table.GetCell(r, 5).SetText(ts(stats.best))
+			ui.table.GetCell(r, 6).SetText(ts(stats.worst))
+			ui.table.GetCell(r, 7).SetText(ts(stats.mean))
+			ui.table.GetCell(r, 8).SetText(stats.stddev.String())
 
 			if u.lastErr != nil {
 				ui.table.GetCell(r, 8).SetText(fmt.Sprintf("%v", u.lastErr))
