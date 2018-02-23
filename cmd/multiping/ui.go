@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"strconv"
 	"time"
 
@@ -67,11 +68,6 @@ var coldef = [...]struct {
 		align:   tview.AlignRight,
 		content: func(st *stat) string { return st.stddev.String() },
 	},
-	{
-		title:   "last err",
-		align:   tview.AlignLeft,
-		content: func(st *stat) string { return st.lastError },
-	},
 }
 
 func buildTUI(destinations []*destination) *userInterface {
@@ -86,17 +82,18 @@ func buildTUI(destinations []*destination) *userInterface {
 		SetDynamicColors(true).
 		SetTextAlign(tview.AlignCenter).
 		SetText("[yellow]multiping[white]   press q to exit")
+
 	logs := tview.NewTextView().
-		SetText("error log (emtpy)")
+		SetDynamicColors(true).
+		SetWrap(false)
+	log.SetFlags(log.Ltime | log.LUTC)
+	log.SetOutput(logs)
 
 	ui.grid.AddItem(title, 0, 0, 1, 1, 0, 0, false)
 	ui.grid.AddItem(ui.table, 1, 0, 1, 1, 0, 0, true)
-	ui.grid.AddItem(logs, 3, 0, 1, 1, 0, 0, false)
+	ui.grid.AddItem(logs, 2, 0, 1, 1, 0, 0, false)
 
-	for col, def := range coldef {
-		ui.table.SetCell(0, col, tview.NewTableCell(def.title).SetAlign(def.align))
-	}
-
+	// setup controls
 	ui.app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		switch event.Key() {
 		case tcell.KeyEscape, tcell.KeyCtrlC:
@@ -111,6 +108,12 @@ func buildTUI(destinations []*destination) *userInterface {
 		return event
 	})
 
+	// build header
+	for col, def := range coldef {
+		ui.table.SetCell(0, col, tview.NewTableCell(def.title).SetAlign(def.align))
+	}
+
+	// prepare data list
 	for r, dst := range destinations {
 		for c, def := range coldef {
 			var cell *tview.TableCell
@@ -137,10 +140,6 @@ func (ui *userInterface) update(interval time.Duration) {
 		for i, u := range ui.destinations {
 			stats := u.compute()
 			r := i + 2
-
-			if u.lastErr != nil {
-				stats.lastError = u.lastErr.Error()
-			}
 
 			for col, def := range coldef {
 				if def.content != nil {

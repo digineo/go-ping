@@ -52,6 +52,10 @@ func main() {
 		}
 
 		for _, remote := range remotes {
+			if v4 := remote.IP.To4() != nil; v4 && opts.bind4 == "" || !v4 && opts.bind6 == "" {
+				continue
+			}
+
 			ipaddr := remote // need to create a copy
 			dst := destination{
 				host:   host,
