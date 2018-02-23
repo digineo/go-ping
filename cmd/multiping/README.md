@@ -64,9 +64,7 @@ Usage of ./multiping:
 - [x] cleanup UI code (this is a bit of a mess)
 - [ ] add more features
   - [ ] different display modes (`mtr` has different views)
-  - [ ] properly align colums to use the full terminal width
-  - [ ] drop columns, when screen is to small
-  - [ ] move "last error" column into a log area at the bottom
+  - [x] move "last error" column into a log area at the bottom
   - [ ] increase/decrease interval and/or timeout with `-`/`+` keys
 - [x] fill IPv6 options with life (once the library has IPv6 support)
 - [x] use something more sophisticated than `net.ResolveIPAddress` to

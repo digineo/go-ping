@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"math"
 	"net"
 	"sync"
@@ -13,7 +14,6 @@ type history struct {
 	received int
 	lost     int
 	results  []time.Duration // ring, start index = .received%len
-	lastErr  error
 	mtx      sync.RWMutex
 }
 
@@ -25,18 +25,21 @@ type destination struct {
 }
 
 type stat struct {
-	pktSent   int
-	pktLoss   float64
-	last      time.Duration
-	best      time.Duration
-	worst     time.Duration
-	mean      time.Duration
-	stddev    time.Duration
-	lastError string
+	pktSent int
+	pktLoss float64
+	last    time.Duration
+	best    time.Duration
+	worst   time.Duration
+	mean    time.Duration
+	stddev  time.Duration
 }
 
 func (u *destination) ping(pinger *ping.Pinger) {
-	u.addResult(pinger.PingRTT(u.remote))
+	rtt, err := pinger.PingRTT(u.remote)
+	if err != nil {
+		log.Printf("[yellow]%s[white]: %v", u.host, err)
+	}
+	u.addResult(rtt, err)
 }
 
 func (s *history) addResult(rtt time.Duration, err error) {
@@ -45,7 +48,6 @@ func (s *history) addResult(rtt time.Duration, err error) {
 		s.results[s.received%len(s.results)] = rtt
 		s.received++
 	} else {
-		s.lastErr = err
 		s.lost++
 	}
 	s.mtx.Unlock()
