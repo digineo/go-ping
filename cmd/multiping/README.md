@@ -42,7 +42,7 @@ $ multiping golang.org google.com 127.0.0.1
 To get a list of available options, run `multiping -h`:
 
 ```
-Usage of multiping:
+Usage of ./multiping:
   -bind4 string
     	IPv4 bind address (default "0.0.0.0")
   -bind6 string
@@ -51,19 +51,24 @@ Usage of multiping:
     	buffer size for statistics (default 50)
   -interval duration
     	polling interval (default 1s)
+  -resolve duration
+    	timeout for DNS lookups (default 1.5s)
+  -s uint
+    	size of payload in bytes (default 56)
   -timeout duration
     	timeout for a single echo request (default 1s)
 ```
 
 ## Roadmap
 
-- [ ] cleanup UI code (this is a bit of a mess)
-  - add different display modes (`mtr` features different views)
-  - properly align colums to use the full terminal width
-  - drop columns, when screen is to small
-  - move "last error" column into a log area at the bottom
-  - increase/decrease interval and/or timeout with `-`/`+` keys
-- [ ] fill IPv6 options with life (once the library has IPv6 support)
-- [ ] use something more sophisticated than `net.ResolveIPAddress` to
+- [x] cleanup UI code (this is a bit of a mess)
+- [ ] add more features
+  - [ ] different display modes (`mtr` has different views)
+  - [ ] properly align colums to use the full terminal width
+  - [ ] drop columns, when screen is to small
+  - [ ] move "last error" column into a log area at the bottom
+  - [ ] increase/decrease interval and/or timeout with `-`/`+` keys
+- [x] fill IPv6 options with life (once the library has IPv6 support)
+- [x] use something more sophisticated than `net.ResolveIPAddress` to
   get a list of all A/AAAA records for a given domain name
-  - this propably needs an off-switch
+  - [ ] this propably needs an off-switch
