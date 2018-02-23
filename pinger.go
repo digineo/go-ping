@@ -24,6 +24,9 @@ type Pinger struct {
 	Attempts uint          // number of attempts
 	Timeout  time.Duration // timeout per request
 
+	payload   Payload
+	payloadMu sync.RWMutex
+
 	requests map[uint16]*request // currently running requests
 	mtx      sync.RWMutex        // lock for the requests map
 	id       uint16
@@ -59,6 +62,7 @@ func New(bind4, bind6 string) (*Pinger, error) {
 		id:       uint16(os.Getpid()),
 		requests: make(map[uint16]*request),
 	}
+	pinger.SetPayloadSize(56)
 
 	if conn4 != nil {
 		pinger.wg.Add(1)
@@ -92,4 +96,28 @@ func (pinger *Pinger) close(conn *icmp.PacketConn) {
 	if conn != nil {
 		conn.Close()
 	}
+}
+
+// SetPayloadSize resizes additional payload data to the given size. The
+// payload will subsequently be appended to outgoing ICMP Echo Requests.
+//
+// The default payload size is 56, resulting in 64 bytes for the ICMP packet.
+func (pinger *Pinger) SetPayloadSize(size uint16) {
+	pinger.payloadMu.Lock()
+	pinger.payload.Resize(size)
+	pinger.payloadMu.Unlock()
+}
+
+// SetPayload allows you to overwrite the current payload with your own data.
+func (pinger *Pinger) SetPayload(data []byte) {
+	pinger.payloadMu.Lock()
+	pinger.payload = Payload(data)
+	pinger.payloadMu.Unlock()
+}
+
+// PayloadSize retrieves the current payload size.
+func (pinger *Pinger) PayloadSize() uint16 {
+	pinger.payloadMu.RLock()
+	defer pinger.payloadMu.RUnlock()
+	return uint16(len(pinger.payload))
 }
