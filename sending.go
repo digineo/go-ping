@@ -37,12 +37,16 @@ func (pinger *Pinger) once(remote *net.IPAddr) (time.Duration, error) {
 		wait: make(chan struct{}),
 	}
 
+	pinger.payloadMu.RLock()
+	defer pinger.payloadMu.RUnlock()
+
 	// build packet
 	wm := icmp.Message{
 		Code: 0,
 		Body: &icmp.Echo{
-			ID:  int(pinger.id),
-			Seq: int(seq),
+			ID:   int(pinger.id),
+			Seq:  int(seq),
+			Data: pinger.payload,
 		},
 	}
 
