@@ -11,6 +11,7 @@ import (
 
 type userInterface struct {
 	app          *tview.Application
+	grid         *tview.Grid
 	table        *tview.Table
 	destinations []*destination
 }
@@ -77,10 +78,20 @@ func buildTUI(destinations []*destination) *userInterface {
 	ui := &userInterface{
 		app:          tview.NewApplication(),
 		table:        tview.NewTable().SetBorders(false).SetFixed(2, 0),
+		grid:         tview.NewGrid().SetRows(3, 0, 10).SetColumns(0),
 		destinations: destinations,
 	}
 
-	ui.table.SetTitle(" multiping (press [q] to exit) ")
+	title := tview.NewTextView().
+		SetDynamicColors(true).
+		SetTextAlign(tview.AlignCenter).
+		SetText("[yellow]multiping[white]   press q to exit")
+	logs := tview.NewTextView().
+		SetText("error log (emtpy)")
+
+	ui.grid.AddItem(title, 0, 0, 1, 1, 0, 0, false)
+	ui.grid.AddItem(ui.table, 1, 0, 1, 1, 0, 0, true)
+	ui.grid.AddItem(logs, 3, 0, 1, 1, 0, 0, false)
 
 	for col, def := range coldef {
 		ui.table.SetCell(0, col, tview.NewTableCell(def.title).SetAlign(def.align))
@@ -116,7 +127,7 @@ func buildTUI(destinations []*destination) *userInterface {
 }
 
 func (ui *userInterface) Run() error {
-	ui.app.SetRoot(ui.table, true).SetFocus(ui.table)
+	ui.app.SetRoot(ui.grid, true).SetFocus(ui.table)
 	return ui.app.Run()
 }
 
