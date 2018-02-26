@@ -14,7 +14,7 @@ func init() {
 // Requests.
 type Payload []byte
 
-// Resize will
+// Resize will assign a new payload of the given size to p.
 func (p *Payload) Resize(size uint16) {
 	buf := make([]byte, size, size)
 	if _, err := rand.Read(buf); err != nil {

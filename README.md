@@ -14,8 +14,8 @@ fully working examples.
 ## Features
 
 - [x] IPv4 and IPv6 support
-- [x] configurable retry/timeout
-- [x] configurable payload size
+- [x] configurable retry amount and timeout duration
+- [x] configurable payload size (and content)
 - [x] round trup time measurement
 
 ## Contribute
