@@ -95,7 +95,6 @@ func work() {
 	for {
 		for i, u := range opts.dests {
 			go func(u *destination, i int) {
-				time.Sleep(time.Duration(i) * time.Millisecond)
 				u.ping(pinger)
 			}(u, i)
 		}
