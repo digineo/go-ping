@@ -10,9 +10,11 @@ import (
 
 const (
 	// ProtocolICMP is the number of the Internet Control Message Protocol
+	// (see golang.org/x/net/internal/iana.ProtocolICMP)
 	ProtocolICMP = 1
 
 	// ProtocolICMPv6 is the IPv6 Next Header value for ICMPv6
+	// see golang.org/x/net/internal/iana.ProtocolIPv6ICMP
 	ProtocolICMPv6 = 58
 )
 
@@ -32,6 +34,8 @@ type Pinger struct {
 	id       uint16
 	conn4    *icmp.PacketConn
 	conn6    *icmp.PacketConn
+	write4   sync.Mutex // lock for conn4.WriteTo
+	write6   sync.Mutex // lock for conn6.WriteTo
 	wg       sync.WaitGroup
 }
 

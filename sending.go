@@ -2,6 +2,7 @@ package ping
 
 import (
 	"net"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -52,12 +53,15 @@ func (pinger *Pinger) once(remote *net.IPAddr) (time.Duration, error) {
 
 	// Protocol specifics
 	var conn *icmp.PacketConn
+	var lock *sync.Mutex
 	if remote.IP.To4() != nil {
 		wm.Type = ipv4.ICMPTypeEcho
 		conn = pinger.conn4
+		lock = &pinger.write4
 	} else {
 		wm.Type = ipv6.ICMPTypeEchoRequest
 		conn = pinger.conn6
+		lock = &pinger.write6
 	}
 
 	// serialize packet
@@ -72,12 +76,14 @@ func (pinger *Pinger) once(remote *net.IPAddr) (time.Duration, error) {
 	pinger.mtx.Unlock()
 
 	// start measurement (tStop is set in the receiving end)
+	lock.Lock()
 	req.tStart = time.Now()
 
 	// send request
 	if _, e := conn.WriteTo(wb, remote); e != nil {
 		req.respond(e, nil)
 	}
+	lock.Unlock()
 
 	// wait for answer
 	select {
