@@ -93,7 +93,9 @@ func (pinger *Pinger) receive(proto int, bytes []byte, t time.Time) {
 func (pinger *Pinger) process(body icmp.MessageBody, result error, tRecv *time.Time) {
 	echo, ok := body.(*icmp.Echo)
 	if !ok || echo == nil {
-		log.Printf("expected *icmp.Echo, got %#v", body)
+		if pinger.LogUnexpectedPackets {
+			log.Printf("expected *icmp.Echo, got %#v", body)
+		}
 		return
 	}
 

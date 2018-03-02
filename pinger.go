@@ -26,6 +26,8 @@ type Pinger struct {
 	Attempts uint          // number of attempts
 	Timeout  time.Duration // timeout per request
 
+	LogUnexpectedPackets bool // increases log verbosity
+
 	payload   Payload
 	payloadMu sync.RWMutex
 
