@@ -35,7 +35,7 @@ type stat struct {
 }
 
 func (u *destination) ping(pinger *ping.Pinger) {
-	rtt, err := pinger.PingRTT(u.remote)
+	rtt, err := pinger.Ping(u.remote, opts.timeout)
 	if err != nil {
 		log.Printf("[yellow]%s[white]: %v", u.host, err)
 	}

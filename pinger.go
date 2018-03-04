@@ -3,7 +3,6 @@ package ping
 import (
 	"os"
 	"sync"
-	"time"
 
 	"golang.org/x/net/icmp"
 )
@@ -23,9 +22,6 @@ var sequence uint32
 
 // Pinger is a instance for ICMP echo requests
 type Pinger struct {
-	Attempts uint          // number of attempts
-	Timeout  time.Duration // timeout per request
-
 	LogUnexpectedPackets bool // increases log verbosity
 
 	payload   Payload

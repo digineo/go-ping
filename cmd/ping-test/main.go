@@ -69,13 +69,11 @@ func main() {
 	}
 	defer pinger.Close()
 
-	pinger.Timeout = time.Second * time.Duration(timeout)
-	pinger.Attempts = attempts
 	if pinger.PayloadSize() != uint16(size) {
 		pinger.SetPayloadSize(uint16(size))
 	}
 
-	if rtt, err := pinger.PingRTT(remote); err == nil {
+	if rtt, err := pinger.PingAttempts(remote, time.Second*time.Duration(timeout), int(attempts)); err == nil {
 		fmt.Printf("ping %s (%s) rtt=%v\n", args[0], remote, rtt)
 	} else {
 		fmt.Println(err)

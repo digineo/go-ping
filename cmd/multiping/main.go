@@ -70,8 +70,6 @@ func main() {
 	}
 
 	if instance, err := ping.New(opts.bind4, opts.bind6); err == nil {
-		instance.Timeout = opts.timeout
-		instance.Attempts = 1
 		if instance.PayloadSize() != uint16(opts.payloadSize) {
 			instance.SetPayloadSize(uint16(opts.payloadSize))
 		}

@@ -1,6 +1,7 @@
 package ping
 
 import (
+	"errors"
 	"net"
 	"sync"
 	"sync/atomic"
@@ -11,28 +12,28 @@ import (
 	"golang.org/x/net/ipv6"
 )
 
-// Ping sends ICMP echo requests, retrying upto Pinger.Attempts times.
-// Will finish early on success.
-func (pinger *Pinger) Ping(remote *net.IPAddr) (err error) {
-	_, err = pinger.PingRTT(remote)
-	return
-}
-
-// PingRTT sends ICMP echo requests, retrying upto Pinger.Attempts times.
-// Will finish early on success and return the round trip time.
-func (pinger *Pinger) PingRTT(remote *net.IPAddr) (rtt time.Duration, err error) {
-	// multiple attempts
-	for i := uint(0); i < pinger.Attempts; i++ {
-		if rtt, err = pinger.once(remote); err == nil {
-			break // success
+// PingAttempts sends ICMP echo requests with a timeout per request, retrying upto `attempt` times .
+// Will finish early on success and return the round trip time of the last ping.
+func (pinger *Pinger) PingAttempts(remote *net.IPAddr, timeout time.Duration, attempts int) (rtt time.Duration, err error) {
+	if attempts < 1 {
+		err = errors.New("zero attempts")
+	} else {
+		for i := 0; i < attempts; i++ {
+			if rtt, err = pinger.Ping(remote, timeout); err == nil {
+				break // success
+			}
 		}
 	}
 	return
 }
 
-// once sends a single Echo Request and waits for an answer. It returns
+// Ping sends a single Echo Request and waits for an answer. It returns
 // the round trip time (RTT) if a reply is received in time.
-func (pinger *Pinger) once(remote *net.IPAddr) (time.Duration, error) {
+func (pinger *Pinger) Ping(remote *net.IPAddr, timeout time.Duration) (time.Duration, error) {
+	if timeout <= 0 {
+		return 0, errors.New("zero timeout")
+	}
+
 	seq := uint16(atomic.AddUint32(&sequence, 1))
 	req := request{
 		wait: make(chan struct{}),
@@ -89,7 +90,7 @@ func (pinger *Pinger) once(remote *net.IPAddr) (time.Duration, error) {
 	select {
 	case <-req.wait:
 		err = req.result
-	case <-time.After(pinger.Timeout):
+	case <-time.After(timeout):
 		err = &timeoutError{}
 	}
 
