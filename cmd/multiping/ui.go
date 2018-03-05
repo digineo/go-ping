@@ -110,7 +110,11 @@ func buildTUI(destinations []*destination) *userInterface {
 
 	// build header
 	for col, def := range coldef {
-		ui.table.SetCell(0, col, tview.NewTableCell(def.title).SetAlign(def.align))
+		cell := tview.NewTableCell(def.title).SetAlign(def.align)
+		if col == 2 {
+			cell.SetExpansion(1)
+		}
+		ui.table.SetCell(0, col, cell)
 	}
 
 	// prepare data list
