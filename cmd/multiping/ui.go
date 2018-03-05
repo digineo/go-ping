@@ -66,7 +66,7 @@ var coldef = [...]struct {
 	{
 		title:   "stddev",
 		align:   tview.AlignRight,
-		content: func(st *stat) string { return st.stddev.String() },
+		content: func(st *stat) string { return ts(st.stddev) },
 	},
 }
 
@@ -156,7 +156,7 @@ const tsDividend = float64(time.Millisecond) / float64(time.Nanosecond)
 
 func ts(dur time.Duration) string {
 	if 10*time.Microsecond < dur && dur < time.Second {
-		return fmt.Sprintf("%0.2fms", float64(dur.Nanoseconds())/tsDividend)
+		return fmt.Sprintf("%0.2f", float64(dur.Nanoseconds())/tsDividend)
 	}
 	return dur.String()
 }
