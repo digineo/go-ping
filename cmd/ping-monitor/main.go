@@ -13,30 +13,28 @@ import (
 	"github.com/digineo/go-ping/monitor"
 )
 
+var (
+	pingInterval        = 5 * time.Second
+	pingTimeout         = 4 * time.Second
+	reportInterval      = 60 * time.Second
+	size           uint = 56
+	pinger         *ping.Pinger
+	targets        []string
+)
+
 func main() {
-	var size uint
-	var pinger *ping.Pinger
-
-	pingInterval := time.Duration(5) * time.Second
-	pingTimeout := time.Duration(4) * time.Second
-	reportInterval := time.Duration(60) * time.Second
-
 	flag.DurationVar(&pingInterval, "pingInterval", pingInterval, "interval for ICMP echo requests")
 	flag.DurationVar(&pingTimeout, "pingTimeout", pingTimeout, "timeout for ICMP echo request")
 	flag.DurationVar(&reportInterval, "reportInterval", reportInterval, "interval for reports")
-	flag.UintVar(&size, "size", 56, "size of additional payload data")
+	flag.UintVar(&size, "size", size, "size of additional payload data")
 	flag.Parse()
-	targets := flag.Args()
 
-	// Targets empty?
-	if len(targets) == 0 {
-		fmt.Println("Usage:", os.Args[0], "[options] target1 target2 ...")
-		flag.PrintDefaults()
+	if n := flag.NArg(); n == 0 {
+		// Targets empty?
+		flag.Usage()
 		os.Exit(1)
-	}
-
-	// Too many targets?
-	if len(targets) > int(^byte(0)) {
+	} else if n > int(^byte(0)) {
+		// Too many targets?
 		fmt.Println("Too many targets")
 		os.Exit(1)
 	}
@@ -56,6 +54,7 @@ func main() {
 	defer monitor.Stop()
 
 	// Add targets
+	targets = flag.Args()
 	for i, target := range targets {
 		ipAddr, err := net.ResolveIPAddr("", target)
 		if err != nil {
