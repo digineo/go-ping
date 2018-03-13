@@ -2,7 +2,9 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
+	"os"
 	"time"
 
 	ping "github.com/digineo/go-ping"
@@ -33,6 +35,11 @@ var (
 )
 
 func main() {
+	flag.Usage = func() {
+		fmt.Fprintln(os.Stderr, "Usage:", os.Args[0], "[options] host [host [...]]")
+		flag.PrintDefaults()
+	}
+
 	flag.DurationVar(&opts.timeout, "timeout", opts.timeout, "timeout for a single echo request")
 	flag.DurationVar(&opts.interval, "interval", opts.interval, "polling interval")
 	flag.UintVar(&opts.payloadSize, "s", opts.payloadSize, "size of payload in bytes")

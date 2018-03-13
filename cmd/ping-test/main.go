@@ -20,6 +20,11 @@ var (
 )
 
 func main() {
+	flag.Usage = func() {
+		fmt.Fprintln(os.Stderr, "Usage:", os.Args[0], "[options] host [host [...]]")
+		flag.PrintDefaults()
+	}
+
 	flag.UintVar(&attempts, "attempts", attempts, "number of attempts")
 	flag.UintVar(&timeout, "timeout", timeout, "timeout in seconds for a single echo request")
 	flag.UintVar(&size, "s", size, "size of additional payload data")

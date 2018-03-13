@@ -23,6 +23,11 @@ var (
 )
 
 func main() {
+	flag.Usage = func() {
+		fmt.Fprintln(os.Stderr, "Usage:", os.Args[0], "[options] host [host [...]]")
+		flag.PrintDefaults()
+	}
+
 	flag.DurationVar(&pingInterval, "pingInterval", pingInterval, "interval for ICMP echo requests")
 	flag.DurationVar(&pingTimeout, "pingTimeout", pingTimeout, "timeout for ICMP echo request")
 	flag.DurationVar(&reportInterval, "reportInterval", reportInterval, "interval for reports")
