@@ -11,17 +11,20 @@ import (
 	ping "github.com/digineo/go-ping"
 )
 
-func main() {
-	var attempts, timeout uint
-	var proto4, proto6 bool
-	var size uint
-	var bind string
+var (
+	attempts       uint = 3
+	timeout        uint = 1
+	proto4, proto6 bool
+	size           uint = 56
+	bind           string
+)
 
-	flag.UintVar(&attempts, "attempts", 3, "number of attempts")
-	flag.UintVar(&timeout, "timeout", 1, "timeout in seconds for a single echo request")
-	flag.UintVar(&size, "s", 56, "size of additional payload data")
-	flag.BoolVar(&proto4, "4", false, "use IPv4 (mutually exclusive with -6)")
-	flag.BoolVar(&proto6, "6", false, "use IPv6 (mutually exclusive with -4)")
+func main() {
+	flag.UintVar(&attempts, "attempts", attempts, "number of attempts")
+	flag.UintVar(&timeout, "timeout", timeout, "timeout in seconds for a single echo request")
+	flag.UintVar(&size, "s", size, "size of additional payload data")
+	flag.BoolVar(&proto4, "4", proto4, "use IPv4 (mutually exclusive with -6)")
+	flag.BoolVar(&proto6, "6", proto6, "use IPv6 (mutually exclusive with -4)")
 	flag.StringVar(&bind, "bind", "", "IPv4 or IPv6 bind address (defaults to 0.0.0.0 for IPv4 and :: for IPv6)")
 	flag.Parse()
 
