@@ -4,12 +4,18 @@
 
 A simple ICMP Echo implementation, based on [golang.org/x/net/icmp][net-icmp].
 
-See [`cmd/ping-test`][cmd-ping] and [`cmd/multiping`][multiping] for
-fully working examples.
+Some sample programs are provided in `cmd/`:
+
+- [**`ping-test`**][ping-test] is a really simple ping clone
+- [**`multiping`**][multiping] provides an interactive TUI to ping multiple hosts
+- [**`ping-monitor`**][monitor] pings multiple hosts in parallel, but just prints the summary every so often
+- [**`pingnet`**][pingnet] allows to ping every host in a CIDR range (e.g. 0.0.0.0/0 :-))
 
 [net-icmp]: https://godoc.org/golang.org/x/net/icmp
-[cmd-ping]: https://github.com/digineo/go-ping/cmd/ping-test
-[multiping]: https://github.com/digineo/go-ping/cmd/multiping
+[ping-test]: https://github.com/digineo/go-ping/tree/master/cmd/ping-test
+[multiping]: https://github.com/digineo/go-ping/tree/master/cmd/multiping
+[monitor]: https://github.com/digineo/go-ping/tree/master/cmd/ping-monitor
+[pingnet]: https://github.com/digineo/go-ping/tree/master/cmd/pingnet
 
 ## Features
 
