@@ -81,23 +81,32 @@ func (pinger *Pinger) Ping(remote *net.IPAddr, timeout time.Duration) (time.Dura
 	req.tStart = time.Now()
 
 	// send request
-	if _, e := conn.WriteTo(wb, remote); e != nil {
-		req.respond(e, nil)
-	}
+	_, err = conn.WriteTo(wb, remote)
 	lock.Unlock()
+
+	// send failed, need to remove request from list
+	if err != nil {
+		close(req.wait)
+
+		pinger.mtx.Lock()
+		delete(pinger.requests, seq)
+		pinger.mtx.Unlock()
+		return 0, err
+	}
 
 	// wait for answer
 	select {
 	case <-req.wait:
+		// already dequeued
 		err = req.result
 	case <-time.After(timeout):
+		// dequeue request
+		pinger.mtx.Lock()
+		delete(pinger.requests, seq)
+		pinger.mtx.Unlock()
+
 		err = &timeoutError{}
 	}
-
-	// dequeue request
-	pinger.mtx.Lock()
-	delete(pinger.requests, seq)
-	pinger.mtx.Unlock()
 
 	if err != nil {
 		return 0, err

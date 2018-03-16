@@ -105,9 +105,12 @@ func (pinger *Pinger) process(body icmp.MessageBody, result error, tRecv *time.T
 	}
 
 	// search for existing running echo request
-	pinger.mtx.RLock()
+	pinger.mtx.Lock()
 	req := pinger.requests[uint16(echo.Seq)]
-	pinger.mtx.RUnlock()
+	if req != nil {
+		delete(pinger.requests, uint16(echo.Seq))
+	}
+	pinger.mtx.Unlock()
 
 	if req != nil {
 		req.respond(result, tRecv)
