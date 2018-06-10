@@ -13,7 +13,7 @@ import (
 
 var (
 	attempts       uint = 3
-	timeout        uint = 1
+	timeout             = time.Second
 	proto4, proto6 bool
 	size           uint = 56
 	bind           string
@@ -26,7 +26,7 @@ func main() {
 	}
 
 	flag.UintVar(&attempts, "attempts", attempts, "number of attempts")
-	flag.UintVar(&timeout, "timeout", timeout, "timeout in seconds for a single echo request")
+	flag.DurationVar(&timeout, "timeout", timeout, "timeout for a single echo request")
 	flag.UintVar(&size, "s", size, "size of additional payload data")
 	flag.BoolVar(&proto4, "4", proto4, "use IPv4 (mutually exclusive with -6)")
 	flag.BoolVar(&proto6, "6", proto6, "use IPv6 (mutually exclusive with -4)")
@@ -81,7 +81,7 @@ func main() {
 		pinger.SetPayloadSize(uint16(size))
 	}
 
-	if rtt, err := pinger.PingAttempts(remote, time.Second*time.Duration(timeout), int(attempts)); err == nil {
+	if rtt, err := pinger.PingAttempts(remote, timeout, int(attempts)); err == nil {
 		fmt.Printf("ping %s (%s) rtt=%v\n", args[0], remote, rtt)
 	} else {
 		fmt.Println(err)
