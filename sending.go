@@ -65,8 +65,14 @@ func (pinger *Pinger) PingContext(ctx context.Context, remote *net.IPAddr) (time
 // PingMulticast sends a single echo request and returns a channel for the responses.
 // The channel will be closed on termination of the context.
 // An error is returned if the sending of the echo request fails.
-func (pinger *Pinger) PingMulticast(ctx context.Context, remote *net.IPAddr) (<-chan Reply, error) {
+func (pinger *Pinger) PingMulticast(remote *net.IPAddr, wait time.Duration) (<-chan Reply, error) {
+	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(wait))
+	defer cancel()
+	return pinger.PingMulticastContext(ctx, remote)
+}
 
+// PingMulticastContext does the same as PingMulticast but receives a context
+func (pinger *Pinger) PingMulticastContext(ctx context.Context, remote *net.IPAddr) (<-chan Reply, error) {
 	req := multiRequest{
 		replies: make(chan Reply),
 	}
