@@ -78,7 +78,6 @@ func (req *multiRequest) close() {
 
 // handleReply is responsible for adding a result to the result set
 func (req *multiRequest) handleReply(_ error, addr net.IP, tRecv *time.Time) {
-
 	// avoid blocking
 	go func() {
 		req.mtx.RLock()

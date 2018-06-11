@@ -21,7 +21,6 @@ func (pinger *Pinger) PingAttempts(destination *net.IPAddr, timeout time.Duratio
 	} else {
 		for i := 0; i < attempts; i++ {
 			rtt, err = pinger.Ping(destination, timeout)
-
 			if err == nil {
 				break // success
 			}
@@ -52,7 +51,6 @@ func (pinger *Pinger) PingContext(ctx context.Context, destination *net.IPAddr) 
 	case <-ctx.Done():
 		// dequeue request
 		pinger.removeRequest(seq)
-
 		err = &timeoutError{}
 	}
 
