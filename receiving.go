@@ -30,7 +30,7 @@ func (pinger *Pinger) receiver(proto int, conn *icmp.PacketConn) {
 	// close running requests
 	pinger.mtx.RLock()
 	for _, req := range pinger.requests {
-		req.handleResponse(errClosed, nil, nil)
+		req.handleReply(errClosed, nil, nil)
 	}
 	pinger.mtx.RUnlock()
 
@@ -113,6 +113,6 @@ func (pinger *Pinger) process(body icmp.MessageBody, result error, addr net.IP, 
 	pinger.mtx.Unlock()
 
 	if req != nil {
-		req.handleResponse(result, addr, tRecv)
+		req.handleReply(result, addr, tRecv)
 	}
 }
