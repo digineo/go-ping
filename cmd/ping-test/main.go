@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -85,11 +84,7 @@ func main() {
 	if remote.IP.IsLinkLocalMulticast() {
 		fmt.Printf("multicast ping to %s (%s)\n", args[0], remote)
 
-		deadline := time.Now().Add(timeout)
-		ctx, cancel := context.WithDeadline(context.Background(), deadline)
-		defer cancel()
-
-		responses, err := pinger.PingMulticast(ctx, remote)
+		responses, err := pinger.PingMulticast(remote, timeout)
 
 		if err != nil {
 			fmt.Println(err)

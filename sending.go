@@ -15,12 +15,12 @@ import (
 
 // PingAttempts sends ICMP echo requests with a timeout per request, retrying upto `attempt` times .
 // Will finish early on success and return the round trip time of the last ping.
-func (pinger *Pinger) PingAttempts(remote *net.IPAddr, timeout time.Duration, attempts int) (rtt time.Duration, err error) {
+func (pinger *Pinger) PingAttempts(destination *net.IPAddr, timeout time.Duration, attempts int) (rtt time.Duration, err error) {
 	if attempts < 1 {
 		err = errors.New("zero attempts")
 	} else {
 		for i := 0; i < attempts; i++ {
-			rtt, err = pinger.Ping(remote, timeout)
+			rtt, err = pinger.Ping(destination, timeout)
 
 			if err == nil {
 				break // success
@@ -32,17 +32,17 @@ func (pinger *Pinger) PingAttempts(remote *net.IPAddr, timeout time.Duration, at
 
 // Ping sends a single Echo Request and waits for an answer. It returns
 // the round trip time (RTT) if a reply is received in time.
-func (pinger *Pinger) Ping(remote *net.IPAddr, timeout time.Duration) (time.Duration, error) {
+func (pinger *Pinger) Ping(destination *net.IPAddr, timeout time.Duration) (time.Duration, error) {
 	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(timeout))
 	defer cancel()
-	return pinger.PingContext(ctx, remote)
+	return pinger.PingContext(ctx, destination)
 }
 
 // PingContext sends a single Echo Request and waits for an answer. It returns
 // the round trip time (RTT) if a reply is received before cancellation of the context.
-func (pinger *Pinger) PingContext(ctx context.Context, remote *net.IPAddr) (time.Duration, error) {
+func (pinger *Pinger) PingContext(ctx context.Context, destination *net.IPAddr) (time.Duration, error) {
 	req := simpleRequest{}
-	seq, err := pinger.sendRequest(remote, &req)
+	seq, err := pinger.sendRequest(destination, &req)
 
 	// wait for answer
 	select {
@@ -65,18 +65,18 @@ func (pinger *Pinger) PingContext(ctx context.Context, remote *net.IPAddr) (time
 // PingMulticast sends a single echo request and returns a channel for the responses.
 // The channel will be closed on termination of the context.
 // An error is returned if the sending of the echo request fails.
-func (pinger *Pinger) PingMulticast(remote *net.IPAddr, wait time.Duration) (<-chan Reply, error) {
+func (pinger *Pinger) PingMulticast(destination *net.IPAddr, wait time.Duration) (<-chan Reply, error) {
 	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(wait))
 	defer cancel()
-	return pinger.PingMulticastContext(ctx, remote)
+	return pinger.PingMulticastContext(ctx, destination)
 }
 
 // PingMulticastContext does the same as PingMulticast but receives a context
-func (pinger *Pinger) PingMulticastContext(ctx context.Context, remote *net.IPAddr) (<-chan Reply, error) {
+func (pinger *Pinger) PingMulticastContext(ctx context.Context, destination *net.IPAddr) (<-chan Reply, error) {
 	req := multiRequest{
 		replies: make(chan Reply),
 	}
-	seq, err := pinger.sendRequest(remote, &req)
+	seq, err := pinger.sendRequest(destination, &req)
 
 	if err != nil {
 		return nil, err
@@ -96,7 +96,7 @@ func (pinger *Pinger) PingMulticastContext(ctx context.Context, remote *net.IPAd
 
 // sendRequest marshals the payload and sends the packet.
 // It returns the sequence number and an error if the sending failed.
-func (pinger *Pinger) sendRequest(remote *net.IPAddr, req request) (uint16, error) {
+func (pinger *Pinger) sendRequest(destination *net.IPAddr, req request) (uint16, error) {
 	seq := uint16(atomic.AddUint32(&sequence, 1))
 
 	pinger.payloadMu.RLock()
@@ -115,7 +115,7 @@ func (pinger *Pinger) sendRequest(remote *net.IPAddr, req request) (uint16, erro
 	// Protocol specifics
 	var conn *icmp.PacketConn
 	var lock *sync.Mutex
-	if remote.IP.To4() != nil {
+	if destination.IP.To4() != nil {
 		wm.Type = ipv4.ICMPTypeEcho
 		conn = pinger.conn4
 		lock = &pinger.write4
@@ -141,7 +141,7 @@ func (pinger *Pinger) sendRequest(remote *net.IPAddr, req request) (uint16, erro
 	req.init()
 
 	// send request
-	_, err = conn.WriteTo(wb, remote)
+	_, err = conn.WriteTo(wb, destination)
 	lock.Unlock()
 
 	// send failed, need to remove request from list
