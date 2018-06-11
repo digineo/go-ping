@@ -62,7 +62,9 @@ func (pinger *Pinger) PingContext(ctx context.Context, remote *net.IPAddr) (time
 	return req.roundTripTime()
 }
 
-// PingMulticast sends a single Echo Request and waits a given time for the answer(s)
+// PingMulticast sends a single echo request and returns a channel for the responses.
+// The channel will be closed on termination of the context.
+// An error is returned if the sending of the echo request fails.
 func (pinger *Pinger) PingMulticast(ctx context.Context, remote *net.IPAddr) (<-chan Response, error) {
 
 	req := multiRequest{
@@ -86,6 +88,8 @@ func (pinger *Pinger) PingMulticast(ctx context.Context, remote *net.IPAddr) (<-
 	return req.responses, nil
 }
 
+// sendRequest marshals the payload and sends the packet.
+// It returns the sequence number and an error if the sending failed.
 func (pinger *Pinger) sendRequest(remote *net.IPAddr, req request) (uint16, error) {
 	seq := uint16(atomic.AddUint32(&sequence, 1))
 
