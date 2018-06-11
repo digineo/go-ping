@@ -66,6 +66,7 @@ func (req *simpleRequest) roundTripTime() (time.Duration, error) {
 }
 
 func (req *multiRequest) init() {
+	req.replies = make(chan Reply)
 	req.tStart = time.Now()
 }
 

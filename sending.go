@@ -41,7 +41,11 @@ func (pinger *Pinger) Ping(destination *net.IPAddr, timeout time.Duration) (time
 // the round trip time (RTT) if a reply is received before cancellation of the context.
 func (pinger *Pinger) PingContext(ctx context.Context, destination *net.IPAddr) (time.Duration, error) {
 	req := simpleRequest{}
+
 	seq, err := pinger.sendRequest(destination, &req)
+	if err != nil {
+		return 0, err
+	}
 
 	// wait for answer
 	select {
@@ -71,11 +75,9 @@ func (pinger *Pinger) PingMulticast(destination *net.IPAddr, wait time.Duration)
 
 // PingMulticastContext does the same as PingMulticast but receives a context
 func (pinger *Pinger) PingMulticastContext(ctx context.Context, destination *net.IPAddr) (<-chan Reply, error) {
-	req := multiRequest{
-		replies: make(chan Reply),
-	}
-	seq, err := pinger.sendRequest(destination, &req)
+	req := multiRequest{}
 
+	seq, err := pinger.sendRequest(destination, &req)
 	if err != nil {
 		return nil, err
 	}
