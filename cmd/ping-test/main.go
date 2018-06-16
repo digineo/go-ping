@@ -81,10 +81,29 @@ func main() {
 		pinger.SetPayloadSize(uint16(size))
 	}
 
-	if rtt, err := pinger.PingAttempts(remote, timeout, int(attempts)); err == nil {
-		fmt.Printf("ping %s (%s) rtt=%v\n", args[0], remote, rtt)
+	if remote.IP.IsLinkLocalMulticast() {
+		fmt.Printf("multicast ping to %s (%s)\n", args[0], remote)
+
+		responses, err := pinger.PingMulticast(remote, timeout)
+
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		for response := range responses {
+			fmt.Printf("%+v\n", response)
+		}
+
 	} else {
-		fmt.Println(err)
-		os.Exit(1)
+		// non-multicast
+		rtt, err := pinger.PingAttempts(remote, timeout, int(attempts))
+
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		fmt.Printf("ping %s (%s) rtt=%v\n", args[0], remote, rtt)
 	}
 }
