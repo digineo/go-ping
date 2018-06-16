@@ -108,6 +108,7 @@ func (pinger *Pinger) process(body icmp.MessageBody, result error, addr net.IP, 
 	pinger.mtx.Lock()
 	req := pinger.requests[uint16(echo.Seq)]
 	if _, ok := req.(*simpleRequest); ok {
+		// a simpleRequest is finished on the first reply
 		delete(pinger.requests, uint16(echo.Seq))
 	}
 	pinger.mtx.Unlock()

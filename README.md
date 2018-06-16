@@ -20,6 +20,7 @@ Some sample programs are provided in `cmd/`:
 ## Features
 
 - [x] IPv4 and IPv6 support
+- [x] Unicast and multicast support
 - [x] configurable retry amount and timeout duration
 - [x] configurable payload size (and content)
 - [x] round trip time measurement

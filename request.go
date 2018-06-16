@@ -12,7 +12,7 @@ type request interface {
 	handleReply(error, net.IP, *time.Time)
 }
 
-// A request is a currently running ICMP echo request waiting for multple answers.
+// A multiRequest is a currently running ICMP echo request waiting for multple answers.
 type multiRequest struct {
 	tStart  time.Time // when was the request packet sent?
 	replies chan Reply
@@ -26,7 +26,7 @@ type Reply struct {
 	Duration time.Duration
 }
 
-// A request is a currently running ICMP echo request waiting for a single answer.
+// A simpleRequest is a currently running ICMP echo request waiting for a single answer.
 type simpleRequest struct {
 	wait    chan struct{}
 	result  error
@@ -34,8 +34,8 @@ type simpleRequest struct {
 	tFinish *time.Time // if and when was the reply received?
 }
 
-// handleReply is responsible for finishing this request. It takes an error
-// as failure reason.
+// handleReply is responsible for finishing this request.
+// It takes an error as failure reason.
 func (req *simpleRequest) handleReply(err error, _ net.IP, tRecv *time.Time) {
 	req.result = err
 
