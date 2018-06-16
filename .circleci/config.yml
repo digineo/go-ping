@@ -8,10 +8,6 @@ jobs:
       # specify the version
       - image: circleci/golang:1.10
 
-    #### TEMPLATE_NOTE: go expects specific checkout path representing url
-    #### expecting it in the form of
-    ####   /go/src/github.com/circleci/go-tool
-    ####   /go/src/bitbucket.org/circleci/go-tool
     working_directory: /go/src/github.com/digineo/go-ping
     steps:
       - checkout
@@ -20,3 +16,4 @@ jobs:
       - run: go get -v -t -d ./...
       - run: go test -v ./...
       - run: .circleci/build-cmds
+      - run: .circleci/gofmt
