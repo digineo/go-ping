@@ -1,6 +1,7 @@
 # go-ping
 
 [![GoDoc](https://godoc.org/github.com/digineo/go-ping?status.svg)](https://godoc.org/github.com/digineo/go-ping)
+[![CircleCI](https://circleci.com/gh/digineo/go-ping.svg?style=svg)](https://circleci.com/gh/digineo/go-ping)
 
 A simple ICMP Echo implementation, based on [golang.org/x/net/icmp][net-icmp].
 
