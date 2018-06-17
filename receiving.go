@@ -39,7 +39,7 @@ func (pinger *Pinger) receiver(proto int, conn *icmp.PacketConn) {
 }
 
 // receive takes the raw message and tries to evaluate an ICMP response.
-// If that succeedes, the body will given to process() for further processing.
+// If that succeeds, the body will given to process() for further processing.
 func (pinger *Pinger) receive(proto int, bytes []byte, addr net.IP, t time.Time) {
 	// parse message
 	m, err := icmp.ParseMessage(proto, bytes)
