@@ -32,6 +32,12 @@ Some sample programs are provided in `cmd/`:
 Simply fork and create a pull-request. We'll try to respond in a timely
 fashion.
 
+## Software using this library
+
+* [Ping Exporter for Prometheus](https://github.com/czerwonk/ping_exporter)
+
+Please create a pull request to get your software listed.
+
 ## License
 
 MIT License, Copyright (c) 2018 Digineo GmbH
