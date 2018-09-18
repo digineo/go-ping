@@ -43,7 +43,7 @@ func (req *simpleRequest) handleReply(err error, _ net.IP, tRecv *time.Time) {
 	if err == nil && tRecv != nil && req.tFinish == nil {
 		req.tFinish = tRecv
 	}
-	close(req.wait)
+	req.close()
 }
 
 func (req *simpleRequest) init() {
@@ -52,6 +52,12 @@ func (req *simpleRequest) init() {
 }
 
 func (req *simpleRequest) close() {
+	defer func() {
+		// Double-closing is very unlikely, but a race condition may
+		// happen when sending fails and a reply is received anyway.
+		recover()
+	}()
+
 	close(req.wait)
 }
 
