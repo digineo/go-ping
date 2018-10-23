@@ -9,14 +9,14 @@ import (
 )
 
 func BenchmarkAddResult(b *testing.B) {
-	h := &History{}
+	h := NewHistory(8)
 	for i := 0; i < b.N; i++ {
 		h.AddResult(time.Duration(i), nil) // 1 allocc
 	}
 }
 
 func BenchmarkCompute(b *testing.B) {
-	h := &History{}
+	h := NewHistory(8)
 	for i := 0; i < b.N; i++ {
 		h.AddResult(time.Duration(i), nil) // 1 alloc
 		h.Compute()                        // 2 allocs
@@ -29,25 +29,25 @@ func TestCompute(t *testing.T) {
 	err := fmt.Errorf("i/o timeout")
 
 	{ // empty list
-		h := &History{}
+		h := NewHistory(8)
 		assert.Nil(h.Compute())
 	}
 
 	{ // populate with 5 entries
-		h := &History{}
+		h := NewHistory(8)
 		h.AddResult(0, nil)
 		h.AddResult(dur, nil)
 		h.AddResult(dur, nil)
 		h.AddResult(0, err)
 		h.AddResult(dur, nil)
 
-		assert.Len(h.results, 5)
+		assert.Equal(h.count, 5)
 		assert.EqualValues(1, h.Compute().PacketsLost)
 	}
 
 	{
 		// test zero variance
-		h := &History{}
+		h := NewHistory(8)
 		h.AddResult(dur, nil)
 		h.AddResult(dur, nil)
 		h.AddResult(0, err)
