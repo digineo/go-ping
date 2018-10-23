@@ -2,6 +2,7 @@ package monitor
 
 import (
 	"fmt"
+	"math"
 	"testing"
 	"time"
 
@@ -29,8 +30,21 @@ func TestCompute(t *testing.T) {
 	err := fmt.Errorf("i/o timeout")
 
 	{ // empty list
-		h := NewHistory(8)
+		h := NewHistory(4)
 		assert.Nil(h.Compute())
+	}
+
+	{ // one failed entry
+		h := NewHistory(4)
+		h.AddResult(2, err)
+
+		metrics := h.Compute()
+		assert.EqualValues(1, metrics.PacketsSent)
+		assert.EqualValues(1, metrics.PacketsLost)
+		assert.EqualValues(0, metrics.Best)
+		assert.EqualValues(0, metrics.Worst)
+		assert.True(math.IsNaN(float64(metrics.Mean)))
+		assert.True(math.IsNaN(float64(metrics.StdDev)))
 	}
 
 	{ // populate with 5 entries
@@ -83,4 +97,33 @@ func TestCompute(t *testing.T) {
 		assert.EqualValues(7, metrics.PacketsSent)
 		assert.EqualValues(2, metrics.PacketsLost)
 	}
+}
+
+func TestHistoryCapacity(t *testing.T) {
+	assert := assert.New(t)
+	err := fmt.Errorf("i/o timeout")
+
+	h := NewHistory(3)
+	assert.Equal(h.count, 0)
+	h.AddResult(1, nil)
+	h.AddResult(2, err)
+	assert.Equal(h.count, 2)
+	assert.Equal(h.position, 2)
+	h.AddResult(1, nil)
+	assert.Equal(h.count, 3)
+	assert.Equal(h.position, 0)
+
+	h.AddResult(0, nil)
+	assert.Equal(h.count, 3)
+	assert.Equal(h.position, 1)
+	assert.EqualValues(1, h.Compute().PacketsLost)
+
+	// overwrite lost packet result
+	h.AddResult(0, nil)
+	assert.EqualValues(0, h.Compute().PacketsLost)
+
+	// clear
+	h.ComputeAndClear()
+	assert.Equal(h.count, 0)
+	assert.Equal(h.position, 0)
 }
