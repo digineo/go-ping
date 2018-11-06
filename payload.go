@@ -7,6 +7,11 @@ import (
 	"github.com/digineo/go-logwrap"
 )
 
+var (
+	log       = &logwrap.Instance{}
+	SetLogger = log.SetLogger
+)
+
 func init() {
 	rand.Seed(time.Now().UnixNano())
 }
@@ -19,7 +24,7 @@ type Payload []byte
 func (p *Payload) Resize(size uint16) {
 	buf := make([]byte, size, size)
 	if _, err := rand.Read(buf); err != nil {
-		logwrap.Errorf("error resizing payload: %v", err)
+		log.Errorf("error resizing payload: %v", err)
 		return
 	}
 	*p = Payload(buf)

@@ -5,7 +5,6 @@ import (
 	"net"
 	"time"
 
-	"github.com/digineo/go-logwrap"
 	"golang.org/x/net/icmp"
 	"golang.org/x/net/ipv4"
 	"golang.org/x/net/ipv6"
@@ -94,7 +93,7 @@ func (pinger *Pinger) process(body icmp.MessageBody, result error, addr net.IP, 
 	echo, ok := body.(*icmp.Echo)
 	if !ok || echo == nil {
 		if pinger.LogUnexpectedPackets {
-			logwrap.Infof("expected *icmp.Echo, got %#v", body)
+			log.Infof("expected *icmp.Echo, got %#v", body)
 		}
 		return
 	}
