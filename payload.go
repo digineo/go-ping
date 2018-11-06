@@ -8,7 +8,10 @@ import (
 )
 
 var (
-	log       = &logwrap.Instance{}
+	log = &logwrap.Instance{}
+
+	// SetLogger allows updating the Logger. For details, see
+	// "github.com/digineo/go-logwrap".Instance.SetLogger.
 	SetLogger = log.SetLogger
 )
 
