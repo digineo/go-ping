@@ -74,7 +74,7 @@ func (h *History) compute() *Metrics {
 	}
 
 	data := make([]float64, 0, numTotal)
-	var best, worst, mean, stddev, total, sumSquares float64
+	var best, worst, mean, median, stddev, total, sumSquares float64
 	var extremeFound bool
 
 	for i := 0; i < numTotal; i++ {
