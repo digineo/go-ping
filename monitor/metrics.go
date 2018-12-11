@@ -7,5 +7,6 @@ type Metrics struct {
 	Best        float32 // best rtt in ms
 	Worst       float32 // worst rtt in ms
 	Mean        float32 // mean rtt in ms
+	Median      float32 // median rtt in ms
 	StdDev      float32 // std deviation in ms
 }

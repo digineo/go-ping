@@ -1,6 +1,7 @@
 package monitor
 
 import (
+	"github.com/montanaflynn/stats"
 	"math"
 	"sync"
 	"time"
@@ -103,12 +104,15 @@ func (h *History) compute() *Metrics {
 	}
 	stddev = math.Sqrt(sumSquares / size)
 
+	median, _ = stats.Median(data)
+
 	return &Metrics{
 		PacketsSent: numTotal,
 		PacketsLost: numFailure,
 		Best:        float32(best),
 		Worst:       float32(worst),
 		Mean:        float32(mean),
+		Median:      float32(median),
 		StdDev:      float32(stddev),
 	}
 }
