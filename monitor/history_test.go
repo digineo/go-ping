@@ -43,6 +43,7 @@ func TestCompute(t *testing.T) {
 		assert.EqualValues(1, metrics.PacketsLost)
 		assert.EqualValues(0, metrics.Best)
 		assert.EqualValues(0, metrics.Worst)
+		assert.True(math.IsNaN(float64(metrics.Median)))
 		assert.True(math.IsNaN(float64(metrics.Mean)))
 		assert.True(math.IsNaN(float64(metrics.StdDev)))
 	}
@@ -59,6 +60,18 @@ func TestCompute(t *testing.T) {
 		assert.EqualValues(1, h.Compute().PacketsLost)
 	}
 
+	{ // test median
+		h := NewHistory(5)
+		h.AddResult(3*dur, nil)
+		h.AddResult(2*dur, nil)
+		h.AddResult(1*dur, nil)
+		h.AddResult(0*dur, nil)
+		assert.EqualValues(150, h.Compute().Median)
+
+		h.AddResult(4*dur, nil)
+		assert.EqualValues(200, h.Compute().Median)
+	}
+
 	{
 		// test zero variance
 		h := NewHistory(8)
@@ -70,6 +83,7 @@ func TestCompute(t *testing.T) {
 		assert.EqualValues(100, metrics.Best)
 		assert.EqualValues(100, metrics.Worst)
 		assert.EqualValues(100, metrics.Mean)
+		assert.EqualValues(100, metrics.Median)
 		assert.EqualValues(0, metrics.StdDev)
 		assert.EqualValues(3, metrics.PacketsSent)
 		assert.EqualValues(1, metrics.PacketsLost)
@@ -83,6 +97,7 @@ func TestCompute(t *testing.T) {
 		assert.EqualValues(100, metrics.Best)
 		assert.EqualValues(200, metrics.Worst)
 		assert.EqualValues(125, metrics.Mean)
+		assert.EqualValues(100, metrics.Median)
 		assert.InDelta(43.30127, float64(metrics.StdDev), 0.000001)
 		assert.EqualValues(6, metrics.PacketsSent)
 		assert.EqualValues(2, metrics.PacketsLost)
@@ -93,6 +108,7 @@ func TestCompute(t *testing.T) {
 		assert.EqualValues(0, metrics.Best)
 		assert.EqualValues(200, metrics.Worst)
 		assert.EqualValues(100, metrics.Mean)
+		assert.EqualValues(100, metrics.Median)
 		assert.InDelta(63.2455, float64(metrics.StdDev), 0.0001)
 		assert.EqualValues(7, metrics.PacketsSent)
 		assert.EqualValues(2, metrics.PacketsLost)

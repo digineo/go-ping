@@ -2,6 +2,7 @@ package monitor
 
 import (
 	"math"
+	"sort"
 	"sync"
 	"time"
 )
@@ -103,11 +104,22 @@ func (h *History) compute() *Metrics {
 	}
 	stddev = math.Sqrt(sumSquares / size)
 
+	median := math.NaN()
+	if l := len(data); l > 0 {
+		sort.Float64Slice(data).Sort()
+		if l%2 == 0 {
+			median = (data[l/2-1] + data[l/2]) / 2
+		} else {
+			median = data[l/2]
+		}
+	}
+
 	return &Metrics{
 		PacketsSent: numTotal,
 		PacketsLost: numFailure,
 		Best:        float32(best),
 		Worst:       float32(worst),
+		Median:      float32(median),
 		Mean:        float32(mean),
 		StdDev:      float32(stddev),
 	}
