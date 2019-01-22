@@ -10,7 +10,9 @@ jobs:
 
     steps:
       - checkout
-      - run: go get -v -t -d ./...
-      - run: go test -v ./...
+
+      - run: go test -v -cover -coverprofile=coverage.txt ./...
+      - run: bash <(curl -s https://codecov.io/bash)
+
       - run: .circleci/build-cmds
       - run: .circleci/gofmt
