@@ -4,15 +4,29 @@
 version: 2
 jobs:
   build:
-    docker:
-      # specify the version
-      - image: circleci/golang:1.11
+    machine: true
 
     steps:
       - checkout
+      - run: wget -q https://storage.googleapis.com/golang/go1.11.linux-amd64.tar.gz
+      - run: sudo rm -rf /usr/local/go
+      - run: sudo tar -C /usr/local -xzf go1.11.linux-amd64.tar.gz
 
-      - run: go test -v -cover -coverprofile=coverage.txt ./...
+      - run: sudo -E /usr/local/go/bin/go test -v -cover -coverprofile=coverage.txt ./...
       - run: bash <(curl -s https://codecov.io/bash)
 
+
+  checks:
+    docker:
+      - image: circleci/golang:1.11
+    steps:
+      - checkout
       - run: .circleci/build-cmds
       - run: .circleci/gofmt
+
+workflows:
+  version: 2
+  workflow:
+    jobs:
+    - build
+    - checks
