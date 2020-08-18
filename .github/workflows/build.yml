@@ -1,0 +1,34 @@
+name: build
+
+on:
+- push
+- pull_request
+
+jobs:
+  build:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Set up Go 1.x
+      uses: actions/setup-go@v2
+      with:
+        go-version: ^1.15
+      id: go
+
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v2
+
+    - name: Get go-acc
+      run: go get github.com/ory/go-acc
+
+    - name: Build commands
+      run: .github/build-all
+
+    - name: Run tests
+      run: sudo $(which go-acc) -v ./...
+
+    - name: Upload coverage report
+      uses: codecov/codecov-action@v1
+      with:
+        file: coverage.txt
