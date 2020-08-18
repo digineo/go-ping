@@ -8,9 +8,9 @@ jobs:
 
     steps:
       - checkout
-      - run: wget -q https://storage.googleapis.com/golang/go1.11.linux-amd64.tar.gz
+      - run: wget -q https://storage.googleapis.com/golang/go1.15.linux-amd64.tar.gz
       - run: sudo rm -rf /usr/local/go
-      - run: sudo tar -C /usr/local -xzf go1.11.linux-amd64.tar.gz
+      - run: sudo tar -C /usr/local -xzf go1.15.linux-amd64.tar.gz
 
       - run: sudo -E /usr/local/go/bin/go test -v -cover -coverprofile=coverage.txt ./...
       - run: bash <(curl -s https://codecov.io/bash)
@@ -18,7 +18,7 @@ jobs:
 
   checks:
     docker:
-      - image: circleci/golang:1.11
+      - image: circleci/golang:1.15
     steps:
       - checkout
       - run: .circleci/build-cmds
