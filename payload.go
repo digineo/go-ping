@@ -25,7 +25,7 @@ type Payload []byte
 
 // Resize will assign a new payload of the given size to p.
 func (p *Payload) Resize(size uint16) {
-	buf := make([]byte, size, size)
+	buf := make([]byte, size)
 	if _, err := rand.Read(buf); err != nil {
 		log.Errorf("error resizing payload: %v", err)
 		return

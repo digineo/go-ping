@@ -18,9 +18,8 @@ type history struct {
 }
 
 type destination struct {
-	host    string
-	remote  *net.IPAddr
-	display string
+	host   string
+	remote *net.IPAddr
 	*history
 }
 
