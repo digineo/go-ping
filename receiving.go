@@ -12,7 +12,7 @@ import (
 
 // receiver listens on the raw socket and correlates ICMP Echo Replys with
 // currently running requests.
-func (pinger *Pinger) receiver(proto int, conn *icmp.PacketConn) {
+func (pinger *Pinger) receiver(proto int, conn net.PacketConn) {
 	rb := make([]byte, 1500)
 
 	// read incoming packets

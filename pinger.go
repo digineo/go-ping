@@ -1,6 +1,7 @@
 package ping
 
 import (
+	"net"
 	"os"
 	"sync"
 
@@ -30,8 +31,8 @@ type Pinger struct {
 	requests map[uint16]request // currently running requests
 	mtx      sync.RWMutex       // lock for the requests map
 	id       uint16
-	conn4    *icmp.PacketConn
-	conn6    *icmp.PacketConn
+	conn4    net.PacketConn
+	conn6    net.PacketConn
 	write4   sync.Mutex // lock for conn4.WriteTo
 	write6   sync.Mutex // lock for conn6.WriteTo
 	wg       sync.WaitGroup
@@ -94,7 +95,7 @@ func connectICMP(network, address string) (*icmp.PacketConn, error) {
 	return icmp.ListenPacket(network, address)
 }
 
-func (pinger *Pinger) close(conn *icmp.PacketConn) {
+func (pinger *Pinger) close(conn net.PacketConn) {
 	if conn != nil {
 		conn.Close()
 	}

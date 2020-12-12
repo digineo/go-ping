@@ -113,7 +113,7 @@ func (pinger *Pinger) sendRequest(destination *net.IPAddr, req request) (uint16,
 	}
 
 	// Protocol specifics
-	var conn *icmp.PacketConn
+	var conn net.PacketConn
 	var lock *sync.Mutex
 	if destination.IP.To4() != nil {
 		wm.Type = ipv4.ICMPTypeEcho
