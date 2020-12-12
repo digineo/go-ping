@@ -1,4 +1,4 @@
-package ping
+package internal
 
 import (
 	"math/rand"
@@ -8,11 +8,11 @@ import (
 )
 
 var (
-	log = &logwrap.Instance{}
+	Logger = &logwrap.Instance{}
 
 	// SetLogger allows updating the Logger. For details, see
 	// "github.com/digineo/go-logwrap".Instance.SetLogger.
-	SetLogger = log.SetLogger
+	SetLogger = Logger.SetLogger
 )
 
 func init() {
@@ -27,7 +27,7 @@ type Payload []byte
 func (p *Payload) Resize(size uint16) {
 	buf := make([]byte, size)
 	if _, err := rand.Read(buf); err != nil {
-		log.Errorf("error resizing payload: %v", err)
+		Logger.Errorf("error resizing payload: %v", err)
 		return
 	}
 	*p = Payload(buf)

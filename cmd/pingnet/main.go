@@ -121,7 +121,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if p, err := ping.New(bind4, bind6); err != nil {
+	if p, err := ping.New(bind4, bind6, false); err != nil {
 		log.Fatal(err)
 	} else {
 		pinger = p

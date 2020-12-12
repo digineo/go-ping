@@ -4,14 +4,12 @@ import (
 	"context"
 	"errors"
 	"net"
-	"sync"
 	"sync/atomic"
 	"time"
-
-	"golang.org/x/net/icmp"
-	"golang.org/x/net/ipv4"
-	"golang.org/x/net/ipv6"
 )
+
+// sequence number for this process
+var sequence uint32
 
 // PingAttempts sends ICMP echo requests with a timeout per request, retrying upto `attempt` times .
 // Will finish early on success and return the round trip time of the last ping.
@@ -96,53 +94,22 @@ func (pinger *Pinger) PingMulticastContext(ctx context.Context, destination *net
 
 // sendRequest marshals the payload and sends the packet.
 // It returns the sequence number and an error if the sending failed.
-func (pinger *Pinger) sendRequest(destination *net.IPAddr, req request) (uint16, error) {
+func (pinger *Pinger) sendRequest(dest *net.IPAddr, req request) (uint16, error) {
 	seq := uint16(atomic.AddUint32(&sequence, 1))
 
 	pinger.payloadMu.RLock()
 	defer pinger.payloadMu.RUnlock()
 
-	// build packet
-	wm := icmp.Message{
-		Code: 0,
-		Body: &icmp.Echo{
-			ID:   int(pinger.id),
-			Seq:  int(seq),
-			Data: pinger.payload,
-		},
-	}
+	// start measurement (tStop is set in the receiving end)
+	req.init()
 
-	// Protocol specifics
-	var conn net.PacketConn
-	var lock *sync.Mutex
-	if destination.IP.To4() != nil {
-		wm.Type = ipv4.ICMPTypeEcho
-		conn = pinger.conn4
-		lock = &pinger.write4
-	} else {
-		wm.Type = ipv6.ICMPTypeEchoRequest
-		conn = pinger.conn6
-		lock = &pinger.write6
-	}
-
-	// serialize packet
-	wb, err := wm.Marshal(nil)
-	if err != nil {
-		return seq, err
-	}
+	// send request
+	err := pinger.conn.WriteTo(dest, int(seq), pinger.payload)
 
 	// enqueue in currently running requests
 	pinger.mtx.Lock()
 	pinger.requests[seq] = req
 	pinger.mtx.Unlock()
-
-	// start measurement (tStop is set in the receiving end)
-	lock.Lock()
-	req.init()
-
-	// send request
-	_, err = conn.WriteTo(wb, destination)
-	lock.Unlock()
 
 	// send failed, need to remove request from list
 	if err != nil {

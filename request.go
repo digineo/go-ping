@@ -9,7 +9,7 @@ import (
 type request interface {
 	init()
 	close()
-	handleReply(error, net.IP, *time.Time)
+	handleReply(error, net.IPAddr, *time.Time)
 }
 
 // A multiRequest is a currently running ICMP echo request waiting for multple answers.
@@ -22,7 +22,7 @@ type multiRequest struct {
 
 // Reply is a reply to a multicast echo request
 type Reply struct {
-	Address  net.IP
+	Address  net.IPAddr
 	Duration time.Duration
 }
 
@@ -36,7 +36,7 @@ type simpleRequest struct {
 
 // handleReply is responsible for finishing this request.
 // It takes an error as failure reason.
-func (req *simpleRequest) handleReply(err error, _ net.IP, tRecv *time.Time) {
+func (req *simpleRequest) handleReply(err error, _ net.IPAddr, tRecv *time.Time) {
 	req.result = err
 
 	// update tFinish only if no error present and value wasn't previously set
@@ -84,7 +84,7 @@ func (req *multiRequest) close() {
 }
 
 // handleReply is responsible for adding a result to the result set
-func (req *multiRequest) handleReply(err error, addr net.IP, tRecv *time.Time) {
+func (req *multiRequest) handleReply(err error, addr net.IPAddr, tRecv *time.Time) {
 	if err != nil {
 		return
 	}

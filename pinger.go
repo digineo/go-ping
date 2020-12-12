@@ -1,11 +1,9 @@
 package ping
 
 import (
-	"net"
-	"os"
 	"sync"
 
-	"golang.org/x/net/icmp"
+	"github.com/digineo/go-ping/internal"
 )
 
 const (
@@ -18,87 +16,42 @@ const (
 	ProtocolICMPv6 = 58
 )
 
-// sequence number for this process
-var sequence uint32
-
 // Pinger is a instance for ICMP echo requests
 type Pinger struct {
 	LogUnexpectedPackets bool // increases log verbosity
 
-	payload   Payload
+	payload   internal.Payload
 	payloadMu sync.RWMutex
 
 	requests map[uint16]request // currently running requests
 	mtx      sync.RWMutex       // lock for the requests map
-	id       uint16
-	conn4    net.PacketConn
-	conn6    net.PacketConn
-	write4   sync.Mutex // lock for conn4.WriteTo
-	write6   sync.Mutex // lock for conn6.WriteTo
-	wg       sync.WaitGroup
+	conn     internal.Conn
+
+	wg sync.WaitGroup
 }
 
 // New creates a new Pinger. This will open the raw socket and start the
 // receiving logic. You'll need to call Close() to cleanup.
-func New(bind4, bind6 string) (*Pinger, error) {
-	// open sockets
-	conn4, err := connectICMP("ip4:icmp", bind4)
+func New(bind4, bind6 string, privileged bool) (*Pinger, error) {
+	pinger := Pinger{}
+	pinger.conn.Privileged = privileged
+
+	err := pinger.conn.Open(bind4, bind6)
 	if err != nil {
 		return nil, err
 	}
 
-	conn6, err := connectICMP("ip6:ipv6-icmp", bind6)
-	if err != nil {
-		if conn4 != nil {
-			conn4.Close()
-		}
-		return nil, err
-	}
-
-	if conn4 == nil && conn6 == nil {
-		return nil, errNotBound
-	}
-
-	pinger := Pinger{
-		conn4:    conn4,
-		conn6:    conn6,
-		id:       uint16(os.Getpid()),
-		requests: make(map[uint16]request),
-	}
+	pinger.requests = make(map[uint16]request)
 	pinger.SetPayloadSize(56)
-
-	if conn4 != nil {
-		pinger.wg.Add(1)
-		go pinger.receiver(ProtocolICMP, pinger.conn4)
-	}
-	if conn6 != nil {
-		pinger.wg.Add(1)
-		go pinger.receiver(ProtocolICMPv6, pinger.conn6)
-	}
+	pinger.conn.Receiver = pinger.process
 
 	return &pinger, nil
 }
 
 // Close will close the ICMP socket.
 func (pinger *Pinger) Close() {
-	pinger.close(pinger.conn4)
-	pinger.close(pinger.conn6)
+	pinger.conn.Close()
 	pinger.wg.Wait()
-}
-
-// connectICMP opens a new ICMP connection, if network and address are not empty.
-func connectICMP(network, address string) (*icmp.PacketConn, error) {
-	if network == "" || address == "" {
-		return nil, nil
-	}
-
-	return icmp.ListenPacket(network, address)
-}
-
-func (pinger *Pinger) close(conn net.PacketConn) {
-	if conn != nil {
-		conn.Close()
-	}
 }
 
 func (pinger *Pinger) removeRequest(seq uint16) {
@@ -120,7 +73,7 @@ func (pinger *Pinger) SetPayloadSize(size uint16) {
 // SetPayload allows you to overwrite the current payload with your own data.
 func (pinger *Pinger) SetPayload(data []byte) {
 	pinger.payloadMu.Lock()
-	pinger.payload = Payload(data)
+	pinger.payload = internal.Payload(data)
 	pinger.payloadMu.Unlock()
 }
 

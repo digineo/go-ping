@@ -15,6 +15,7 @@ var opts = struct {
 	interval        time.Duration
 	payloadSize     uint
 	statBufferSize  uint
+	privileged      bool
 	bind4           string
 	bind6           string
 	dests           []*destination
@@ -46,6 +47,7 @@ func main() {
 	flag.UintVar(&opts.statBufferSize, "buf", opts.statBufferSize, "buffer size for statistics")
 	flag.StringVar(&opts.bind4, "bind4", opts.bind4, "IPv4 bind address")
 	flag.StringVar(&opts.bind6, "bind6", opts.bind6, "IPv6 bind address")
+	flag.BoolVar(&opts.privileged, "privileged", opts.privileged, "IPv6 bind address")
 	flag.DurationVar(&opts.resolverTimeout, "resolve", opts.resolverTimeout, "timeout for DNS lookups")
 	flag.Parse()
 
@@ -76,7 +78,7 @@ func main() {
 		}
 	}
 
-	if instance, err := ping.New(opts.bind4, opts.bind6); err == nil {
+	if instance, err := ping.New(opts.bind4, opts.bind6, opts.privileged); err == nil {
 		if instance.PayloadSize() != uint16(opts.payloadSize) {
 			instance.SetPayloadSize(uint16(opts.payloadSize))
 		}

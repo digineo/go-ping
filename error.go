@@ -1,11 +1,11 @@
 package ping
 
-import "errors"
+type ICMPError int
 
-var (
-	errClosed   = errors.New("pinger closed")
-	errNotBound = errors.New("need at least one bind address")
-)
+func (e *ICMPError) Error() string {
+	// FIXME
+	return "icmperror"
+}
 
 // timeoutError implements the net.Error interface. Originally taken from
 // https://github.com/golang/go/blob/release-branch.go1.8/src/net/net.go#L505-L509

@@ -1,12 +1,14 @@
 package monitor
 
+import "time"
+
 // Metrics is a dumb data point computed from a history of Results.
 type Metrics struct {
-	PacketsSent int     // number of packets sent
-	PacketsLost int     // number of packets lost
-	Best        float32 // best rtt in ms
-	Worst       float32 // worst rtt in ms
-	Median      float32 // median rtt in ms
-	Mean        float32 // mean rtt in ms
-	StdDev      float32 // std deviation in ms
+	PacketsSent int           // number of packets sent
+	PacketsLost int           // number of packets lost
+	Best        time.Duration // best rtt
+	Worst       time.Duration // worst rtt
+	Median      time.Duration // median rtt
+	Mean        time.Duration // mean rtt
+	StdDev      time.Duration // std deviation
 }

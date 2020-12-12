@@ -13,7 +13,7 @@ func TestPinger(t *testing.T) {
 	assert := assert.New(t)
 	require := require.New(t)
 
-	pinger, err := New("0.0.0.0", "::")
+	pinger, err := New("0.0.0.0", "::", false)
 	require.NoError(err)
 	require.NotNil(pinger)
 	defer pinger.Close()

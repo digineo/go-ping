@@ -60,7 +60,7 @@ func main() {
 			remoteAddr = r
 		}
 
-		if p, err := ping.New(bind, ""); err != nil {
+		if p, err := ping.New(bind, "", false); err != nil {
 			panic(err)
 		} else {
 			pinger = p
@@ -72,7 +72,7 @@ func main() {
 			remoteAddr = r
 		}
 
-		if p, err := ping.New("", bind); err != nil {
+		if p, err := ping.New("", bind, false); err != nil {
 			panic(err)
 		} else {
 			pinger = p
@@ -93,7 +93,6 @@ func main() {
 
 func unicastPing() {
 	rtt, err := pinger.PingAttempts(remoteAddr, timeout, int(attempts))
-
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -106,7 +105,6 @@ func multicastPing() {
 	fmt.Printf("multicast ping to %s (%s)\n", args[0], destination)
 
 	responses, err := pinger.PingMulticast(remoteAddr, timeout)
-
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
