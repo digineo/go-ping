@@ -22,7 +22,7 @@ type History struct {
 	sync.RWMutex
 }
 
-// NewHistory creates a new History object with a specific capacity
+// NewHistory creates a new History object with a specific capacity.
 func NewHistory(capacity int) History {
 	return History{
 		results: make([]Result, capacity),
@@ -54,6 +54,7 @@ func (h *History) ComputeAndClear() *Metrics {
 	result := h.compute()
 	h.clear()
 	h.Unlock()
+
 	return result
 }
 
@@ -61,20 +62,21 @@ func (h *History) ComputeAndClear() *Metrics {
 func (h *History) Compute() *Metrics {
 	h.RLock()
 	defer h.RUnlock()
+
 	return h.compute()
 }
 
 func (h *History) compute() *Metrics {
 	numFailure := 0
 	numTotal := h.count
-	µsPerMs := 1.0 / float64(time.Millisecond)
 
 	if numTotal == 0 {
 		return nil
 	}
 
 	data := make([]float64, 0, numTotal)
-	var best, worst, mean, stddev, total, sumSquares float64
+	var best, worst, stddev, median time.Duration
+	var total, sumSquares, mean float64
 	var extremeFound bool
 
 	for i := 0; i < numTotal; i++ {
@@ -82,45 +84,43 @@ func (h *History) compute() *Metrics {
 		if curr.Lost {
 			numFailure++
 		} else {
-			rtt := float64(curr.RTT) * µsPerMs
-			data = append(data, rtt)
+			data = append(data, float64(curr.RTT))
 
-			if !extremeFound || rtt < best {
-				best = rtt
+			if !extremeFound || curr.RTT < best {
+				best = curr.RTT
 			}
-			if !extremeFound || rtt > worst {
-				worst = rtt
+			if !extremeFound || curr.RTT > worst {
+				worst = curr.RTT
 			}
 
 			extremeFound = true
-			total += rtt
+			total += float64(curr.RTT)
 		}
 	}
 
-	size := float64(numTotal - numFailure)
-	mean = total / size
-	for _, rtt := range data {
-		sumSquares += math.Pow(rtt-mean, 2)
-	}
-	stddev = math.Sqrt(sumSquares / size)
+	if numFailure < numTotal {
+		size := numTotal - numFailure
+		mean = total / float64(size)
+		for _, rtt := range data {
+			sumSquares += math.Pow(rtt-mean, 2)
+		}
+		stddev = time.Duration(math.Sqrt(sumSquares / float64(size)))
 
-	median := math.NaN()
-	if l := len(data); l > 0 {
 		sort.Float64Slice(data).Sort()
-		if l%2 == 0 {
-			median = (data[l/2-1] + data[l/2]) / 2
+		if size%2 == 0 {
+			median = time.Duration((data[size/2-1] + data[size/2]) / 2)
 		} else {
-			median = data[l/2]
+			median = time.Duration(data[size/2])
 		}
 	}
 
 	return &Metrics{
 		PacketsSent: numTotal,
 		PacketsLost: numFailure,
-		Best:        float32(best),
-		Worst:       float32(worst),
-		Median:      float32(median),
-		Mean:        float32(mean),
-		StdDev:      float32(stddev),
+		Best:        best,
+		Worst:       worst,
+		Median:      median,
+		Mean:        time.Duration(mean),
+		StdDev:      stddev,
 	}
 }
