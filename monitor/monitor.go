@@ -50,7 +50,7 @@ func New() *Monitor {
 		HistorySize: defaultHistorySize,
 		PayloadSize: defaultPayloadSize,
 		targets:     make(map[string]*target),
-		inFlight:    make([]*target, math.MaxUint16),
+		inFlight:    make([]*target, math.MaxUint16+1),
 		stop:        make(chan struct{}),
 	}
 }
