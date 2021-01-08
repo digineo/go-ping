@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	ping "github.com/digineo/go-ping"
+	ping "github.com/digineo/go-ping/v2"
 )
 
 var (

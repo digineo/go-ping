@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/digineo/go-ping/internal"
+	"github.com/digineo/go-ping/v2/internal"
 	"golang.org/x/net/icmp"
 )
 

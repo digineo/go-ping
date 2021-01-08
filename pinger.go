@@ -3,7 +3,7 @@ package ping
 import (
 	"sync"
 
-	"github.com/digineo/go-ping/internal"
+	"github.com/digineo/go-ping/v2/internal"
 )
 
 const (
