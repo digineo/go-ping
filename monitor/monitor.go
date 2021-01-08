@@ -20,12 +20,14 @@ var (
 
 // Monitor manages the goroutines responsible for collecting Ping RTT data.
 type Monitor struct {
-	HistorySize int // Number of results per target to keep
-	PayloadSize uint16
-	Privileged  bool
+	HistorySize int           // Number of results per target to keep
+	PayloadSize uint16        // ICMP echo payload size
+	Privileged  bool          // Use privileged ping
+	Interval    time.Duration // Ping interval for each host
+	Bind4       string        // Bind address for IPv4
+	Bind6       string        // Bind address for IPv6
 
-	conn     internal.Conn
-	interval time.Duration
+	conn internal.Conn
 
 	targets  map[string]*target // mapping from external key
 	inFlight []*target          // mapping from sequence to target
@@ -37,29 +39,30 @@ type Monitor struct {
 const (
 	defaultHistorySize = 10
 	defaultPayloadSize = 8
+	defaultInterval    = 15 * time.Second
 )
 
 // New creates and configures a new Ping instance. You need to call
 // AddTarget()/RemoveTarget() to manage monitored targets.
-func New(interval time.Duration) *Monitor {
+func New() *Monitor {
 	return &Monitor{
+		Interval:    defaultInterval,
 		HistorySize: defaultHistorySize,
 		PayloadSize: defaultPayloadSize,
 		targets:     make(map[string]*target),
 		inFlight:    make([]*target, math.MaxUint16),
 		stop:        make(chan struct{}),
-		interval:    interval,
 	}
 }
 
-func (m *Monitor) Start(bind4, bind6 string) error {
+func (m *Monitor) Start() error {
 	if m.conn.Receiver != nil {
 		panic("already started")
 	}
 	m.conn.Privileged = m.Privileged
 	m.conn.Receiver = m.receive
 
-	err := m.conn.Open(bind4, bind6)
+	err := m.conn.Open(m.Bind4, m.Bind6)
 	if err != nil {
 		return err
 	}
@@ -75,7 +78,7 @@ func (m *Monitor) Stop() {
 }
 
 func (m *Monitor) run() {
-	ticker := time.NewTicker(m.interval)
+	ticker := time.NewTicker(m.Interval)
 
 	m.pingTargets()
 	for {
@@ -102,7 +105,7 @@ func (m *Monitor) pingTargets() {
 		return
 	}
 
-	sleep := m.interval / time.Duration(len(keys))
+	sleep := m.Interval / time.Duration(len(keys))
 
 	for i := range keys {
 		select {

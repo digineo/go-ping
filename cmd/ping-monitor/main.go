@@ -41,7 +41,10 @@ func main() {
 	}
 
 	// Create monitor
-	monitor := monitor.New(pingInterval)
+	monitor := monitor.New()
+	monitor.Interval = pingInterval
+	monitor.Bind4 = "0.0.0.0"
+	monitor.Bind6 = "::"
 	monitor.PayloadSize = uint16(size)
 
 	// Add targets
@@ -56,7 +59,7 @@ func main() {
 	}
 
 	// Start
-	err := monitor.Start("0.0.0.0", "::")
+	err := monitor.Start()
 	if err != nil {
 		fmt.Printf("Unable to bind: %s\nRunning as root?\n", err)
 		os.Exit(2)
