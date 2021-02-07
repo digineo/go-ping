@@ -128,7 +128,6 @@ func (c *Conn) receive(proto int, bytes []byte, addr net.IPAddr, t time.Time) {
 	// evaluate message
 	switch m.Type {
 	case ipv4.ICMPTypeEchoReply, ipv6.ICMPTypeEchoReply:
-
 		c.Receiver(m.Body.(*icmp.Echo), nil, addr, &t)
 
 	case ipv4.ICMPTypeDestinationUnreachable, ipv6.ICMPTypeDestinationUnreachable:
@@ -167,8 +166,8 @@ func (c *Conn) receive(proto int, bytes []byte, addr net.IPAddr, t time.Time) {
 		err = fmt.Errorf("%v", m.Type)
 
 		echo, ok := msg.Body.(*icmp.Echo)
-		if !ok || echo == nil {
-			Logger.Infof("expected *icmp.Echo, got %#v", msg)
+		if !ok {
+			Logger.Infof("expected *icmp.Echo, got %#v from %v", msg, addr)
 			return
 		}
 
@@ -176,7 +175,7 @@ func (c *Conn) receive(proto int, bytes []byte, addr net.IPAddr, t time.Time) {
 	}
 }
 
-// sendRequest marshals the payload and sends the packet.
+// WriteTo marshals the payload and sends the packet.
 // It returns the sequence number and an error if the sending failed.
 func (c *Conn) WriteTo(addr *net.IPAddr, seq int, data []byte) error {
 	echo := icmp.Echo{
