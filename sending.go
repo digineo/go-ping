@@ -42,7 +42,7 @@ func (pinger *Pinger) Ping(destination *net.IPAddr, timeout time.Duration) (time
 func (pinger *Pinger) PingContext(ctx context.Context, destination *net.IPAddr) (time.Duration, error) {
 	req := simpleRequest{}
 
-	seq, err := pinger.sendRequest(destination, &req)
+	idseq, err := pinger.sendRequest(destination, &req)
 	if err != nil {
 		return 0, err
 	}
@@ -54,7 +54,7 @@ func (pinger *Pinger) PingContext(ctx context.Context, destination *net.IPAddr) 
 		err = req.result
 	case <-ctx.Done():
 		// dequeue request
-		pinger.removeRequest(seq)
+		pinger.removeRequest(idseq)
 		err = &timeoutError{}
 	}
 
@@ -77,7 +77,7 @@ func (pinger *Pinger) PingMulticast(destination *net.IPAddr, wait time.Duration)
 func (pinger *Pinger) PingMulticastContext(ctx context.Context, destination *net.IPAddr) (<-chan Reply, error) {
 	req := multiRequest{}
 
-	seq, err := pinger.sendRequest(destination, &req)
+	idseq, err := pinger.sendRequest(destination, &req)
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +86,7 @@ func (pinger *Pinger) PingMulticastContext(ctx context.Context, destination *net
 		<-ctx.Done()
 
 		// dequeue request
-		pinger.removeRequest(seq)
+		pinger.removeRequest(idseq)
 
 		req.close()
 	}()
@@ -95,9 +95,12 @@ func (pinger *Pinger) PingMulticastContext(ctx context.Context, destination *net
 }
 
 // sendRequest marshals the payload and sends the packet.
-// It returns the sequence number and an error if the sending failed.
-func (pinger *Pinger) sendRequest(destination *net.IPAddr, req request) (uint16, error) {
-	seq := uint16(atomic.AddUint32(&sequence, 1))
+// It returns the combined id+sequence number and an error if the sending failed.
+func (pinger *Pinger) sendRequest(destination *net.IPAddr, req request) (uint32, error) {
+	id := uint16(pinger.Id)
+	seq := uint16(atomic.AddUint32(pinger.SequenceCounter, 1))
+
+	idseq := (uint32(id) << 16) | uint32(seq)
 
 	pinger.payloadMu.RLock()
 	defer pinger.payloadMu.RUnlock()
@@ -106,7 +109,7 @@ func (pinger *Pinger) sendRequest(destination *net.IPAddr, req request) (uint16,
 	wm := icmp.Message{
 		Code: 0,
 		Body: &icmp.Echo{
-			ID:   int(pinger.id),
+			ID:   int(id),
 			Seq:  int(seq),
 			Data: pinger.payload,
 		},
@@ -128,12 +131,12 @@ func (pinger *Pinger) sendRequest(destination *net.IPAddr, req request) (uint16,
 	// serialize packet
 	wb, err := wm.Marshal(nil)
 	if err != nil {
-		return seq, err
+		return idseq, err
 	}
 
 	// enqueue in currently running requests
 	pinger.mtx.Lock()
-	pinger.requests[seq] = req
+	pinger.requests[idseq] = req
 	pinger.mtx.Unlock()
 
 	// start measurement (tStop is set in the receiving end)
@@ -147,10 +150,10 @@ func (pinger *Pinger) sendRequest(destination *net.IPAddr, req request) (uint16,
 	// send failed, need to remove request from list
 	if err != nil {
 		req.close()
-		pinger.removeRequest(seq)
+		pinger.removeRequest(idseq)
 
-		return 0, err
+		return idseq, err
 	}
 
-	return seq, nil
+	return idseq, nil
 }
