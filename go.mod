@@ -9,6 +9,6 @@ require (
 	github.com/gdamore/tcell/v2 v2.0.1-0.20201017141208-acf90d56d591
 	github.com/rivo/tview v0.0.0-20201204190810-5406288b8e4e
 	github.com/stretchr/testify v1.6.1
-	golang.org/x/net v0.0.0-20201209123823-ac852fbbde11
+	golang.org/x/net v0.7.0
 	gopkg.in/cheggaaa/pb.v1 v1.0.27
 )
