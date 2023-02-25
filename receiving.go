@@ -98,17 +98,14 @@ func (pinger *Pinger) process(body icmp.MessageBody, result error, addr net.IP, 
 		return
 	}
 
-	// check if we sent this
-	if uint16(echo.ID) != pinger.id {
-		return
-	}
+	idseq := (uint32(uint16(echo.ID)) << 16) | uint32(uint16(echo.Seq))
 
 	// search for existing running echo request
 	pinger.mtx.Lock()
-	req := pinger.requests[uint16(echo.Seq)]
+	req := pinger.requests[idseq]
 	if _, ok := req.(*simpleRequest); ok {
 		// a simpleRequest is finished on the first reply
-		delete(pinger.requests, uint16(echo.Seq))
+		delete(pinger.requests, idseq)
 	}
 	pinger.mtx.Unlock()
 

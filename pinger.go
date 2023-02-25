@@ -18,19 +18,20 @@ const (
 	ProtocolICMPv6 = 58
 )
 
-// sequence number for this process
+// default sequence counter for this process
 var sequence uint32
 
 // Pinger is a instance for ICMP echo requests
 type Pinger struct {
 	LogUnexpectedPackets bool // increases log verbosity
+	Id                   uint16
+	SequenceCounter      *uint32
 
 	payload   Payload
 	payloadMu sync.RWMutex
 
-	requests map[uint16]request // currently running requests
+	requests map[uint32]request // currently running requests
 	mtx      sync.RWMutex       // lock for the requests map
-	id       uint16
 	conn4    net.PacketConn
 	conn6    net.PacketConn
 	write4   sync.Mutex // lock for conn4.WriteTo
@@ -60,10 +61,11 @@ func New(bind4, bind6 string) (*Pinger, error) {
 	}
 
 	pinger := Pinger{
-		conn4:    conn4,
-		conn6:    conn6,
-		id:       uint16(os.Getpid()),
-		requests: make(map[uint16]request),
+		conn4:           conn4,
+		conn6:           conn6,
+		Id:              uint16(os.Getpid()),
+		SequenceCounter: &sequence,
+		requests:        make(map[uint32]request),
 	}
 	pinger.SetPayloadSize(56)
 
@@ -101,9 +103,9 @@ func (pinger *Pinger) close(conn net.PacketConn) {
 	}
 }
 
-func (pinger *Pinger) removeRequest(seq uint16) {
+func (pinger *Pinger) removeRequest(idseq uint32) {
 	pinger.mtx.Lock()
-	delete(pinger.requests, seq)
+	delete(pinger.requests, idseq)
 	pinger.mtx.Unlock()
 }
 
