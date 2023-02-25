@@ -18,7 +18,7 @@ func (pinger *Pinger) receiver(proto int, conn net.PacketConn) {
 	// read incoming packets
 	for {
 		if n, source, err := conn.ReadFrom(rb); err != nil {
-			if netErr, ok := err.(net.Error); !ok || !netErr.Temporary() {
+			if netErr, ok := err.(net.Error); !ok || !netErr.Temporary() { //nolint:staticcheck
 				break // socket gone
 			}
 		} else {
