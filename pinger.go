@@ -31,11 +31,13 @@ type Pinger struct {
 	requests map[uint16]request // currently running requests
 	mtx      sync.RWMutex       // lock for the requests map
 	id       uint16
-	conn4    net.PacketConn
-	conn6    net.PacketConn
+	conn4    *icmp.PacketConn
+	conn6    *icmp.PacketConn
 	write4   sync.Mutex // lock for conn4.WriteTo
 	write6   sync.Mutex // lock for conn6.WriteTo
 	wg       sync.WaitGroup
+
+	ifIndex int // interface index to send/recv ICMP
 }
 
 // New creates a new Pinger. This will open the raw socket and start the
@@ -77,6 +79,17 @@ func New(bind4, bind6 string) (*Pinger, error) {
 	}
 
 	return &pinger, nil
+}
+
+func (pinger *Pinger) SetIfIndex(iface string) {
+	if iface == "" {
+		return
+	}
+	i, err := net.InterfaceByName(iface)
+	if err != nil {
+		return
+	}
+	pinger.ifIndex = i.Index
 }
 
 // Close will close the ICMP socket.
