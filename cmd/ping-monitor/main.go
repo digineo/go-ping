@@ -14,9 +14,10 @@ import (
 )
 
 var (
-	pingInterval        = 5 * time.Second
-	pingTimeout         = 4 * time.Second
-	reportInterval      = 60 * time.Second
+	pingInterval   = 5 * time.Second
+	pingTimeout    = 4 * time.Second
+	reportInterval = 60 * time.Second
+	pingInterface  string
 	size           uint = 56
 	pinger         *ping.Pinger
 	targets        []string
@@ -31,6 +32,7 @@ func main() {
 	flag.DurationVar(&pingInterval, "pingInterval", pingInterval, "interval for ICMP echo requests")
 	flag.DurationVar(&pingTimeout, "pingTimeout", pingTimeout, "timeout for ICMP echo request")
 	flag.DurationVar(&reportInterval, "reportInterval", reportInterval, "interval for reports")
+	flag.StringVar(&pingInterface, "I", "", "interface for ICMP echo request")
 	flag.UintVar(&size, "size", size, "size of additional payload data")
 	flag.Parse()
 
@@ -52,6 +54,7 @@ func main() {
 		pinger = p
 	}
 	pinger.SetPayloadSize(uint16(size))
+	pinger.SetIfIndex(pingInterface)
 	defer pinger.Close()
 
 	// Create monitor

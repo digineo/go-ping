@@ -113,7 +113,7 @@ func (pinger *Pinger) sendRequest(destination *net.IPAddr, req request) (uint16,
 	}
 
 	// Protocol specifics
-	var conn net.PacketConn
+	var conn *icmp.PacketConn
 	var lock *sync.Mutex
 	if destination.IP.To4() != nil {
 		wm.Type = ipv4.ICMPTypeEcho
@@ -141,7 +141,11 @@ func (pinger *Pinger) sendRequest(destination *net.IPAddr, req request) (uint16,
 	req.init()
 
 	// send request
-	_, err = conn.WriteTo(wb, destination)
+	if destination.IP.To4() != nil {
+		err = pinger.sendIPv4Request(conn, wb, destination)
+	} else {
+		err = pinger.sendIPv6Request(conn, wb, destination)
+	}
 	lock.Unlock()
 
 	// send failed, need to remove request from list
@@ -153,4 +157,28 @@ func (pinger *Pinger) sendRequest(destination *net.IPAddr, req request) (uint16,
 	}
 
 	return seq, nil
+}
+
+func (pinger *Pinger) sendIPv4Request(conn *icmp.PacketConn, wb []byte, dst net.Addr) error {
+	var cm ipv4.ControlMessage
+	if 1 <= pinger.ifIndex {
+		if err := conn.IPv4PacketConn().SetControlMessage(ipv4.FlagInterface, true); err != nil {
+			return err
+		}
+		cm = ipv4.ControlMessage{IfIndex: pinger.ifIndex}
+	}
+	_, err := conn.IPv4PacketConn().WriteTo(wb, &cm, dst)
+	return err
+}
+
+func (pinger *Pinger) sendIPv6Request(conn *icmp.PacketConn, wb []byte, dst net.Addr) error {
+	var cm ipv6.ControlMessage
+	if 1 <= pinger.ifIndex {
+		if err := conn.IPv6PacketConn().SetControlMessage(ipv6.FlagInterface, true); err != nil {
+			return err
+		}
+		cm = ipv6.ControlMessage{IfIndex: pinger.ifIndex}
+	}
+	_, err := conn.IPv6PacketConn().WriteTo(wb, &cm, dst)
+	return err
 }
