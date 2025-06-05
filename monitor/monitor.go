@@ -77,6 +77,10 @@ func (m *Monitor) Stop() {
 	close(m.stop)
 }
 
+func (m *Monitor) SetUnexpectedPacketLogging(enabled bool) {
+	m.conn.SetUnexpectedPacketLogging(enabled)
+}
+
 func (m *Monitor) run() {
 	ticker := time.NewTicker(m.Interval)
 

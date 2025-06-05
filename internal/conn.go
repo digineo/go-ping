@@ -34,8 +34,9 @@ type Conn struct {
 	Receiver   Receiver
 	Privileged bool
 
-	conn4 net.PacketConn
-	conn6 net.PacketConn
+	logUnexpectedPackets bool
+	conn4                net.PacketConn
+	conn6                net.PacketConn
 }
 
 // New creates a new Pinger. This will open the raw socket and start the
@@ -166,7 +167,7 @@ func (c *Conn) receive(proto int, bytes []byte, addr net.IPAddr, t time.Time) {
 		err = fmt.Errorf("%v", m.Type)
 
 		echo, ok := msg.Body.(*icmp.Echo)
-		if !ok {
+		if !ok && c.logUnexpectedPackets {
 			Logger.Infof("expected *icmp.Echo, got %#v from %v", msg, addr)
 			return
 		}
@@ -230,4 +231,8 @@ func connectICMP(network, address string) (*icmp.PacketConn, error) {
 	}
 
 	return icmp.ListenPacket(network, address)
+}
+
+func (c *Conn) SetUnexpectedPacketLogging(enabled bool) {
+	c.logUnexpectedPackets = enabled
 }

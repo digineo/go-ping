@@ -18,7 +18,11 @@ const (
 
 // Pinger is a instance for ICMP echo requests
 type Pinger struct {
-	LogUnexpectedPackets bool // increases log verbosity
+	// increases log verbosity
+	//
+	// Deprecated: use SetUnexpectedPacketLogging instead, as setting only this
+	// field won't affect the internal connection state.
+	LogUnexpectedPackets bool
 
 	payload   internal.Payload
 	payloadMu sync.RWMutex
@@ -82,4 +86,10 @@ func (pinger *Pinger) PayloadSize() uint16 {
 	pinger.payloadMu.RLock()
 	defer pinger.payloadMu.RUnlock()
 	return uint16(len(pinger.payload))
+}
+
+// SetUnexpectedPacketLogging enables or disables logging of unexpected packets.
+func (pinger *Pinger) SetUnexpectedPacketLogging(enabled bool) {
+	pinger.LogUnexpectedPackets = enabled
+	pinger.conn.SetUnexpectedPacketLogging(enabled)
 }
