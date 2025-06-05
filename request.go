@@ -55,7 +55,7 @@ func (req *simpleRequest) close() {
 	defer func() {
 		// Double-closing is very unlikely, but a race condition may
 		// happen when sending fails and a reply is received anyway.
-		recover()
+		_ = recover()
 	}()
 
 	close(req.wait)

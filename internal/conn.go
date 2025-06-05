@@ -98,7 +98,7 @@ func (c *Conn) receiver(proto int, conn net.PacketConn) {
 	// read incoming packets
 	for {
 		if n, source, err := conn.ReadFrom(rb); err != nil {
-			if netErr, ok := err.(net.Error); !ok || !netErr.Temporary() {
+			if netErr, ok := err.(net.Error); !ok || !netErr.Temporary() { //nolint:staticcheck // needs investigation
 				break // socket gone
 			}
 		} else {
@@ -215,7 +215,7 @@ func (c *Conn) WriteTo(addr *net.IPAddr, seq int, data []byte) error {
 	if c.Privileged {
 		_, err = conn.WriteTo(wb, addr)
 	} else {
-		conn.WriteTo(wb, &net.UDPAddr{
+		_, _ = conn.WriteTo(wb, &net.UDPAddr{
 			IP:   addr.IP,
 			Zone: addr.Zone,
 		})

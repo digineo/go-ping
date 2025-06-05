@@ -180,7 +180,7 @@ func main() {
 
 	// yield all IP addresses
 	for _, g := range generator {
-		g.each(func(ip net.IP) error {
+		_ = g.each(func(ip net.IP) error {
 			ips <- net.IPAddr{IP: ip, Zone: ifname}
 			time.Sleep(interval)
 			return nil
