@@ -1,7 +1,5 @@
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/digineo/go-logwrap v0.0.0-20181106161722-a178c58ea3f0 h1:OT/LKmj81wMymnWXaKaKBR9n1vPlu+GC0VVKaZP6kzs=
-github.com/digineo/go-logwrap v0.0.0-20181106161722-a178c58ea3f0/go.mod h1:DmqdumeAKGQNU5E8MN0ruT5ZGx8l/WbAsMbXCXcSEts=
 github.com/fatih/color v1.10.0 h1:s36xzo75JdqLaaWoiEHk767eHiwo0598uUxyfiPkDsg=
 github.com/fatih/color v1.10.0/go.mod h1:ELkj/draVOlAH/xkhN6mQ50Qd0MPOk5AAr3maGEBuJM=
 github.com/gdamore/encoding v1.0.0 h1:+7OoQ1Bc6eTm5niUzBa0Ctsh6JbMW6Ra+YNuAtDBdko=

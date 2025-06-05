@@ -3,6 +3,7 @@ package internal
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"net"
 	"os"
 	"time"
@@ -168,7 +169,9 @@ func (c *Conn) receive(proto int, bytes []byte, addr net.IPAddr, t time.Time) {
 
 		echo, ok := msg.Body.(*icmp.Echo)
 		if !ok && c.logUnexpectedPackets {
-			Logger.Infof("expected *icmp.Echo, got %#v from %v", msg, addr)
+			Logger.Info("expected *icmp.Echo",
+				slog.String("msg", fmt.Sprintf("%v", msg.Body)),
+				slog.String("source", addr.String()))
 			return
 		}
 

@@ -2,20 +2,14 @@ package internal
 
 import (
 	"encoding/binary"
+	"log/slog"
 	"math/rand/v2"
 	"time"
-
-	"github.com/digineo/go-logwrap"
 )
 
 var (
-	Logger = &logwrap.Instance{}
-
-	// SetLogger allows updating the Logger. For details, see
-	// "github.com/digineo/go-logwrap".Instance.SetLogger.
-	SetLogger = Logger.SetLogger
-
-	rnd *rand.ChaCha8
+	Logger = slog.Default()
+	rnd    *rand.ChaCha8
 )
 
 func init() {
