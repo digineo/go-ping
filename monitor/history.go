@@ -100,7 +100,8 @@ func (h *History) compute() *Metrics {
 	size := float64(numTotal - numFailure)
 	mean = total / size
 	for _, rtt := range data {
-		sumSquares += math.Pow(rtt-mean, 2)
+		diff := rtt - mean
+		sumSquares += diff * diff
 	}
 	stddev = math.Sqrt(sumSquares / size)
 

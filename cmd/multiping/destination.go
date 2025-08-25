@@ -92,7 +92,8 @@ func (s *history) compute() (st stat) {
 
 	stddevNum := float64(0)
 	for _, rtt := range collection {
-		stddevNum += math.Pow(float64(rtt-st.mean), 2)
+		dev := float64(rtt - st.mean)
+		stddevNum += dev * dev
 	}
 	st.stddev = time.Duration(math.Sqrt(stddevNum / float64(size)))
 
