@@ -26,6 +26,7 @@ var (
 	size     = uint(56)
 	force    bool
 	verbose  bool
+	mark     uint
 	pinger   *ping.Pinger
 )
 
@@ -84,6 +85,7 @@ func main() {
 	flag.IntVar(&poolSize, "P", poolSize, "concurrency level")
 	flag.BoolVar(&force, "f", force, "sanity flag needed if you want to ping more than 4096 hosts (/20)")
 	flag.BoolVar(&verbose, "v", verbose, "also print out unreachable addresses")
+	flag.UintVar(&mark, "m", mark, "set socket mark (SO_MARK) to this value")
 	flag.Parse()
 
 	// simple error checking
@@ -125,6 +127,10 @@ func main() {
 		log.Fatal(err)
 	} else {
 		pinger = p
+	}
+
+	if mark > 0 {
+		pinger.SetMark(mark)
 	}
 
 	// prepare worker
