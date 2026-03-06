@@ -42,13 +42,25 @@ type Pinger struct {
 // New creates a new Pinger. This will open the raw socket and start the
 // receiving logic. You'll need to call Close() to cleanup.
 func New(bind4, bind6 string) (*Pinger, error) {
+	return NewPinger("ip4:icmp", bind4, "ip6:ipv6-icmp", bind6)
+}
+
+// NewUDP creates a new Pinger using unprivileged UDP sockets.
+// Currently only Darwin and Linux support this.
+func NewUDP(bind4, bind6 string) (*Pinger, error) {
+	return NewPinger("udp4", bind4, "udp6", bind6)
+}
+
+// NewPinger creates a new Pinger with the given network types and bind addresses.
+// For non-privileged ICMP, use "udp4" and "udp6".
+func NewPinger(network4, bind4, network6, bind6 string) (*Pinger, error) {
 	// open sockets
-	conn4, err := connectICMP("ip4:icmp", bind4)
+	conn4, err := connectICMP(network4, bind4)
 	if err != nil {
 		return nil, err
 	}
 
-	conn6, err := connectICMP("ip6:ipv6-icmp", bind6)
+	conn6, err := connectICMP(network6, bind6)
 	if err != nil {
 		if conn4 != nil {
 			conn4.Close()
@@ -67,6 +79,18 @@ func New(bind4, bind6 string) (*Pinger, error) {
 		SequenceCounter: &sequence,
 		requests:        make(map[uint32]request),
 	}
+
+	// For unprivileged sockets, we must use the port number as ID
+	if conn4 != nil {
+		if addr, ok := conn4.LocalAddr().(*net.UDPAddr); ok {
+			pinger.Id = uint16(addr.Port)
+		}
+	} else if conn6 != nil {
+		if addr, ok := conn6.LocalAddr().(*net.UDPAddr); ok {
+			pinger.Id = uint16(addr.Port)
+		}
+	}
+
 	pinger.SetPayloadSize(56)
 
 	if conn4 != nil {

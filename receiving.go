@@ -22,7 +22,14 @@ func (pinger *Pinger) receiver(proto int, conn net.PacketConn) {
 				break // socket gone
 			}
 		} else {
-			pinger.receive(proto, rb[:n], source.(*net.IPAddr).IP, time.Now())
+			var ip net.IP
+			switch addr := source.(type) {
+			case *net.IPAddr:
+				ip = addr.IP
+			case *net.UDPAddr:
+				ip = addr.IP
+			}
+			pinger.receive(proto, rb[:n], ip, time.Now())
 		}
 	}
 

@@ -24,9 +24,22 @@ Some sample programs are provided in `cmd/`:
 
 - [x] IPv4 and IPv6 support
 - [x] Unicast and multicast support
+- [x] Privileged and unprivileged (UDP) support
 - [x] configurable retry amount and timeout duration
 - [x] configurable payload size (and content)
 - [x] round trip time measurement
+
+## Usage
+
+For privileged ICMP (requires root or CAP_NET_RAW):
+```go
+pinger, err := ping.New("0.0.0.0", "::")
+```
+
+For unprivileged ICMP (works on Linux and Darwin if allowed):
+```go
+pinger, err := ping.NewUDP("0.0.0.0", "::")
+```
 
 ## Contribute
 

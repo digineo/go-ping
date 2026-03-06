@@ -144,7 +144,11 @@ func (pinger *Pinger) sendRequest(destination *net.IPAddr, req request) (uint32,
 	req.init()
 
 	// send request
-	_, err = conn.WriteTo(wb, destination)
+	var dst net.Addr = destination
+	if _, ok := conn.LocalAddr().(*net.UDPAddr); ok {
+		dst = &net.UDPAddr{IP: destination.IP, Zone: destination.Zone}
+	}
+	_, err = conn.WriteTo(wb, dst)
 	lock.Unlock()
 
 	// send failed, need to remove request from list
