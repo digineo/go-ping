@@ -1,9 +1,8 @@
 # go-ping
 
 [![GoDoc](https://godoc.org/github.com/digineo/go-ping?status.svg)](https://godoc.org/github.com/digineo/go-ping)
-[![Build Status](https://github.com/digineo/go-ping/workflows/build/badge.svg?branch=master)](https://github.com/digineo/go-ping/actions)
+[![build](https://github.com/digineo/go-ping/actions/workflows/build.yml/badge.svg)](https://github.com/digineo/go-ping/actions/workflows/build.yml)
 [![Codecov](https://codecov.io/gh/digineo/go-ping/branch/master/graph/badge.svg)](https://codecov.io/gh/digineo/go-ping)
-[![Go Report Card](https://goreportcard.com/badge/github.com/digineo/go-ping)](https://goreportcard.com/report/github.com/digineo/go-ping)
 
 A simple ICMP Echo implementation, based on [golang.org/x/net/icmp][net-icmp].
 
