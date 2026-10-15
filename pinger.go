@@ -1,7 +1,6 @@
 package ping
 
 import (
-	"net"
 	"os"
 	"sync"
 
@@ -32,10 +31,10 @@ type Pinger struct {
 
 	requests map[uint32]request // currently running requests
 	mtx      sync.RWMutex       // lock for the requests map
-	conn4    net.PacketConn
-	conn6    net.PacketConn
-	write4   sync.Mutex // lock for conn4.WriteTo
-	write6   sync.Mutex // lock for conn6.WriteTo
+	conn4    *icmp.PacketConn   // nil if not bound
+	conn6    *icmp.PacketConn   // nil if not bound
+	write4   sync.Mutex         // lock for conn4.WriteTo
+	write6   sync.Mutex         // lock for conn6.WriteTo
 	wg       sync.WaitGroup
 }
 
@@ -97,10 +96,15 @@ func connectICMP(network, address string) (*icmp.PacketConn, error) {
 	return icmp.ListenPacket(network, address)
 }
 
-func (pinger *Pinger) close(conn net.PacketConn) {
+func (pinger *Pinger) close(conn *icmp.PacketConn) {
 	if conn != nil {
 		conn.Close()
 	}
+}
+
+// makeIDSeq combines ICMP identifier and sequence number into a single key.
+func makeIDSeq(id, seq uint16) uint32 {
+	return uint32(id)<<16 | uint32(seq)
 }
 
 func (pinger *Pinger) removeRequest(idseq uint32) {

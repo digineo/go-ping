@@ -27,11 +27,14 @@ func (pinger *Pinger) receiver(proto int, conn net.PacketConn) {
 	}
 
 	// close running requests
-	pinger.mtx.RLock()
-	for _, req := range pinger.requests {
+	pinger.mtx.Lock()
+	for idseq, req := range pinger.requests {
 		req.handleReply(errClosed, nil, nil)
+		if _, ok := req.(*simpleRequest); ok {
+			delete(pinger.requests, idseq)
+		}
 	}
-	pinger.mtx.RUnlock()
+	pinger.mtx.Unlock()
 
 	// Close() waits for us
 	pinger.wg.Done()
@@ -52,8 +55,8 @@ func (pinger *Pinger) receive(proto int, bytes []byte, addr net.IP, t time.Time)
 		pinger.process(m.Body, nil, addr, &t)
 
 	case ipv4.ICMPTypeDestinationUnreachable, ipv6.ICMPTypeDestinationUnreachable:
-		body := m.Body.(*icmp.DstUnreach)
-		if body == nil {
+		body, ok := m.Body.(*icmp.DstUnreach)
+		if !ok || body == nil {
 			return
 		}
 
@@ -98,7 +101,7 @@ func (pinger *Pinger) process(body icmp.MessageBody, result error, addr net.IP, 
 		return
 	}
 
-	idseq := (uint32(uint16(echo.ID)) << 16) | uint32(uint16(echo.Seq))
+	idseq := makeIDSeq(uint16(echo.ID), uint16(echo.Seq))
 
 	// search for existing running echo request
 	pinger.mtx.Lock()

@@ -3,64 +3,37 @@ package ping
 import (
 	"errors"
 	"os"
-	"reflect"
 	"syscall"
-
-	"golang.org/x/net/icmp"
 )
 
-// getFD gets the system file descriptor for an icmp.PacketConn
-func getFD(c *icmp.PacketConn) (uintptr, error) {
-	v := reflect.ValueOf(c).Elem().FieldByName("c").Elem()
-	if v.Elem().Kind() != reflect.Struct {
-		return 0, errors.New("invalid type")
+// SetMark sets the SO_MARK socket option (fwmark) on all bound sockets.
+func (pinger *Pinger) SetMark(mark uint) error {
+	var conns []syscall.Conn
+
+	if pinger.conn4 != nil {
+		conns = append(conns, pinger.conn4.IPv4PacketConn().PacketConn.(syscall.Conn))
+	}
+	if pinger.conn6 != nil {
+		conns = append(conns, pinger.conn6.IPv6PacketConn().PacketConn.(syscall.Conn))
 	}
 
-	fd := v.Elem().FieldByName("conn").FieldByName("fd")
-	if fd.Elem().Kind() != reflect.Struct {
-		return 0, errors.New("invalid type")
+	for _, conn := range conns {
+		if err := setMark(conn, int(mark)); err != nil {
+			return err
+		}
 	}
-
-	pfd := fd.Elem().FieldByName("pfd")
-	if pfd.Kind() != reflect.Struct {
-		return 0, errors.New("invalid type")
-	}
-
-	return uintptr(pfd.FieldByName("Sysfd").Int()), nil
+	return nil
 }
 
-func (pinger *Pinger) SetMark(mark uint) error {
-	conn4, ok := pinger.conn4.(*icmp.PacketConn)
-	if !ok {
-		return errors.New("invalid connection type")
-	}
-
-	fd, err := getFD(conn4)
+func setMark(conn syscall.Conn, mark int) error {
+	raw, err := conn.SyscallConn()
 	if err != nil {
 		return err
 	}
 
-	err = os.NewSyscallError(
-		"setsockopt",
-		syscall.SetsockoptInt(int(fd), syscall.SOL_SOCKET, syscall.SO_MARK, int(mark)),
-	)
-
-	if err != nil {
-		return err
-	}
-
-	conn6, ok := pinger.conn6.(*icmp.PacketConn)
-	if !ok {
-		return errors.New("invalid connection type")
-	}
-
-	fd, err = getFD(conn6)
-	if err != nil {
-		return err
-	}
-
-	return os.NewSyscallError(
-		"setsockopt",
-		syscall.SetsockoptInt(int(fd), syscall.SOL_SOCKET, syscall.SO_MARK, int(mark)),
-	)
+	var sockErr error
+	err = raw.Control(func(fd uintptr) {
+		sockErr = syscall.SetsockoptInt(int(fd), syscall.SOL_SOCKET, syscall.SO_MARK, mark)
+	})
+	return errors.Join(err, os.NewSyscallError("setsockopt", sockErr))
 }
