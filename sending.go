@@ -103,7 +103,32 @@ func (pinger *Pinger) pingMulticast(ctx context.Context, cancel context.CancelFu
 // sendRequest marshals the payload and sends the packet.
 // It returns the combined id+sequence number and an error if the sending failed.
 func (pinger *Pinger) sendRequest(destination *net.IPAddr, req request) (uint32, error) {
+	// Protocol specifics
+	var conn *icmp.PacketConn
+	var lock *sync.Mutex
+	var messageType icmp.Type
+	if destination.IP.To4() != nil {
+		messageType = ipv4.ICMPTypeEcho
+		conn = pinger.conn4
+		lock = &pinger.write4
+	} else {
+		messageType = ipv6.ICMPTypeEchoRequest
+		conn = pinger.conn6
+		lock = &pinger.write6
+	}
+
+	if conn == nil {
+		return 0, errNoConn
+	}
+
 	id := pinger.Id
+	var dst net.Addr = destination
+	if addr, ok := conn.LocalAddr().(*net.UDPAddr); ok {
+		// The kernel uses this socket's port as the ICMP identifier.
+		// IPv4 and IPv6 sockets can have different identifiers.
+		id = uint16(addr.Port)
+		dst = &net.UDPAddr{IP: destination.IP, Zone: destination.Zone}
+	}
 	seq := uint16(atomic.AddUint32(pinger.SequenceCounter, 1))
 	idseq := makeIDSeq(id, seq)
 
@@ -111,31 +136,14 @@ func (pinger *Pinger) sendRequest(destination *net.IPAddr, req request) (uint32,
 	payload := pinger.payload
 	pinger.payloadMu.RUnlock()
 
-	// build packet
 	wm := icmp.Message{
+		Type: messageType,
 		Code: 0,
 		Body: &icmp.Echo{
 			ID:   int(id),
 			Seq:  int(seq),
 			Data: payload,
 		},
-	}
-
-	// Protocol specifics
-	var conn *icmp.PacketConn
-	var lock *sync.Mutex
-	if destination.IP.To4() != nil {
-		wm.Type = ipv4.ICMPTypeEcho
-		conn = pinger.conn4
-		lock = &pinger.write4
-	} else {
-		wm.Type = ipv6.ICMPTypeEchoRequest
-		conn = pinger.conn6
-		lock = &pinger.write6
-	}
-
-	if conn == nil {
-		return idseq, errNoConn
 	}
 
 	// serialize packet
@@ -155,7 +163,7 @@ func (pinger *Pinger) sendRequest(destination *net.IPAddr, req request) (uint32,
 	pinger.mtx.Unlock()
 
 	// send request
-	_, err = conn.WriteTo(wb, destination)
+	_, err = conn.WriteTo(wb, dst)
 	lock.Unlock()
 
 	// send failed, need to remove request from list
