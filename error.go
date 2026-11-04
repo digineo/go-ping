@@ -5,6 +5,7 @@ import "errors"
 var (
 	errClosed   = errors.New("pinger closed")
 	errNotBound = errors.New("need at least one bind address")
+	errNoConn   = errors.New("no socket bound for this address family")
 )
 
 // timeoutError implements the net.Error interface. Originally taken from
