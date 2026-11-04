@@ -1,7 +1,6 @@
 package ping
 
 import (
-	"net"
 	"os"
 	"sync"
 
@@ -23,8 +22,8 @@ var sequence uint32
 
 // Pinger is a instance for ICMP echo requests
 type Pinger struct {
-	LogUnexpectedPackets bool // increases log verbosity
-	Id                   uint16
+	LogUnexpectedPackets bool   // increases log verbosity
+	Id                   uint16 // ICMP identifier for privileged sockets
 	SequenceCounter      *uint32
 
 	payload   Payload
@@ -78,17 +77,6 @@ func NewPinger(network4, bind4, network6, bind6 string) (*Pinger, error) {
 		Id:              uint16(os.Getpid()),
 		SequenceCounter: &sequence,
 		requests:        make(map[uint32]request),
-	}
-
-	// For unprivileged sockets, we must use the port number as ID
-	if conn4 != nil {
-		if addr, ok := conn4.LocalAddr().(*net.UDPAddr); ok {
-			pinger.Id = uint16(addr.Port)
-		}
-	} else if conn6 != nil {
-		if addr, ok := conn6.LocalAddr().(*net.UDPAddr); ok {
-			pinger.Id = uint16(addr.Port)
-		}
 	}
 
 	pinger.SetPayloadSize(56)
