@@ -1,69 +1,65 @@
 package ping
 
 import (
-	"fmt"
+	"errors"
 	"net"
 	"os"
+	"runtime"
+	"syscall"
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestPinger_Privileged(t *testing.T) {
 	if os.Getenv("RUN_PRIVILEGED") != "1" {
-		t.Skip("Skipping privileged test. Run with RUN_PRIVILEGED=1 and administrative rights.")
+		t.Skip("Run with RUN_PRIVILEGED=1 and administrative rights.")
 	}
-	assert := assert.New(t)
-	require := require.New(t)
 
 	pinger, err := New("0.0.0.0", "::")
-	require.NoError(err)
-	require.NotNil(pinger)
-	defer pinger.Close()
-
-	for _, target := range []string{"8.8.8.8"} {
-		fmt.Printf("Pinging (privileged) %s...\n", target)
-		rtt, err := pinger.PingAttempts(&net.IPAddr{IP: net.ParseIP(target)}, time.Second, 2)
-		assert.NoError(err, target)
-		assert.True(rtt >= 0, target)
-	}
+	require.NoError(t, err)
+	t.Cleanup(pinger.Close)
+	// Privileged sockets must continue to honor the configurable identifier.
+	pinger.Id = 0x1234
+	pingLoopback(t, pinger, []string{"127.0.0.1", "::1"})
 }
 
 func TestPinger_Unprivileged(t *testing.T) {
-	// Note: Windows doesn't actually support unprivileged ICMP via "udp4",
-	// but we can still test if our code initializes and handles the types.
-	// This will likely fail to bind on Windows, so we check the error.
-	assert := assert.New(t)
-	require := require.New(t)
-
-	pinger, err := NewUDP("0.0.0.0", "::")
-	if err != nil {
-		t.Skipf("Skipping unprivileged test (likely not supported on this OS or environment): %v", err)
-		return
+	if runtime.GOOS != "linux" && runtime.GOOS != "darwin" {
+		t.Skip("Unprivileged ICMP sockets require Linux or Darwin.")
 	}
-	require.NotNil(pinger)
-	defer pinger.Close()
 
-	for _, target := range []string{"8.8.8.8"} {
-		fmt.Printf("Pinging (unprivileged) %s...\n", target)
-		rtt, err := pinger.PingAttempts(&net.IPAddr{IP: net.ParseIP(target)}, time.Second, 2)
-		assert.NoError(err, target)
-		assert.True(rtt >= 0, target)
+	for _, test := range []struct {
+		name    string
+		bind4   string
+		bind6   string
+		targets []string
+	}{
+		{"IPv4", "0.0.0.0", "", []string{"127.0.0.1"}},
+		{"IPv6", "", "::", []string{"::1"}},
+		{"DualStack", "0.0.0.0", "::", []string{"127.0.0.1", "::1"}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			pinger, err := NewUDP(test.bind4, test.bind6)
+			if err != nil && os.Getenv("RUN_UNPRIVILEGED") != "1" &&
+				(errors.Is(err, syscall.EACCES) || errors.Is(err, syscall.EPERM)) {
+				t.Skipf("Unprivileged ICMP is not permitted: %v", err)
+			}
+			require.NoError(t, err)
+			t.Cleanup(pinger.Close)
+			pingLoopback(t, pinger, test.targets)
+		})
 	}
 }
 
-func TestIDHandling(t *testing.T) {
-	// Test if NewPinger correctly picks up the port as ID when using UDP
-	p, err := NewPinger("udp4", "0.0.0.0", "", "") // Bind to 0.0.0.0
-	if err != nil {
-		t.Skipf("Could not bind UDP socket for ID test: %v", err)
-		return
+func pingLoopback(t *testing.T, pinger *Pinger, targets []string) {
+	t.Helper()
+	for _, target := range targets {
+		t.Run(target, func(t *testing.T) {
+			rtt, err := pinger.PingAttempts(&net.IPAddr{IP: net.ParseIP(target)}, time.Second, 2)
+			require.NoError(t, err)
+			require.Positive(t, rtt)
+		})
 	}
-	defer p.Close()
-
-	require.NotEqual(t, uint16(os.Getpid()), p.Id, "In UDP mode, ID should be the port, not PID")
-	require.NotZero(t, p.Id, "Port-based ID should not be zero")
-	fmt.Printf("Pinger ID (port): %d, PID was: %d\n", p.Id, os.Getpid())
 }

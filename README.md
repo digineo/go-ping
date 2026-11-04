@@ -40,6 +40,19 @@ For unprivileged ICMP (works on Linux and Darwin if allowed):
 pinger, err := ping.NewUDP("0.0.0.0", "::")
 ```
 
+On Linux, the process's group must be allowed by
+`net.ipv4.ping_group_range`. For example, to allow all groups:
+```sh
+sudo sysctl -w 'net.ipv4.ping_group_range=0 2147483647'
+```
+
+Unprivileged sockets use their own ICMP identifiers; `Pinger.Id` only controls
+the identifier for privileged sockets.
+
+The tests use IPv4 and IPv6 loopback addresses. Set `RUN_UNPRIVILEGED=1` to
+require unprivileged sockets to be available, and `RUN_PRIVILEGED=1` to enable
+the tests that require root or `CAP_NET_RAW`.
+
 ## Contribute
 
 Simply fork and create a pull-request. We'll try to respond in a timely
