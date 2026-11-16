@@ -12,6 +12,22 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestPinger_NoBindings(t *testing.T) {
+	for _, test := range []struct {
+		name string
+		new  func(string, string) (*Pinger, error)
+	}{
+		{"Privileged", New},
+		{"Unprivileged", NewUDP},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			pinger, err := test.new("", "")
+			require.ErrorIs(t, err, errNotBound)
+			require.Nil(t, pinger)
+		})
+	}
+}
+
 func TestPinger_Privileged(t *testing.T) {
 	if os.Getenv("RUN_PRIVILEGED") != "1" {
 		t.Skip("Run with RUN_PRIVILEGED=1 and administrative rights.")
