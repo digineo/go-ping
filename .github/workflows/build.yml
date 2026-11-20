@@ -28,8 +28,14 @@ jobs:
     - name: Build commands
       run: .github/build-all
 
-    - name: Run tests
-      run: sudo go test -v -coverprofile coverage.txt ./...
+    - name: Allow unprivileged ICMP sockets
+      run: sudo sysctl -w 'net.ipv4.ping_group_range=0 2147483647'
+
+    - name: Run tests without privileges
+      run: RUN_UNPRIVILEGED=1 go test -v -coverprofile coverage.txt ./...
+
+    - name: Run privileged ICMP tests
+      run: sudo env RUN_PRIVILEGED=1 "$(command -v go)" test -v -run '^TestPinger_Privileged$' .
 
     - name: Upload coverage report
       uses: codecov/codecov-action@v5
