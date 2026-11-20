@@ -2,17 +2,24 @@ package ping
 
 import (
 	"crypto/rand"
-
-	"github.com/digineo/go-logwrap"
+	"log/slog"
+	"sync/atomic"
 )
 
-var (
-	log = &logwrap.Instance{}
+var logger atomic.Pointer[slog.Logger]
 
-	// SetLogger allows updating the Logger. For details, see
-	// "github.com/digineo/go-logwrap".Instance.SetLogger.
-	SetLogger = log.SetLogger
-)
+// SetLogger sets the logger used by this package. If l is nil (or
+// SetLogger is never called), slog.Default() is used.
+func SetLogger(l *slog.Logger) {
+	logger.Store(l)
+}
+
+func getLogger() *slog.Logger {
+	if l := logger.Load(); l != nil {
+		return l
+	}
+	return slog.Default()
+}
 
 // Payload represents additional data appended to outgoing ICMP Echo
 // Requests.
@@ -22,7 +29,7 @@ type Payload []byte
 func (p *Payload) Resize(size uint16) {
 	buf := make([]byte, size)
 	if _, err := rand.Read(buf); err != nil {
-		log.Errorf("error resizing payload: %v", err)
+		getLogger().Error("error resizing payload", slog.Any("error", err))
 		return
 	}
 	*p = Payload(buf)

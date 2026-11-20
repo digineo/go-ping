@@ -3,7 +3,6 @@ module github.com/digineo/go-ping
 go 1.23.0
 
 require (
-	github.com/digineo/go-logwrap v0.0.0-20181106161722-a178c58ea3f0
 	github.com/gdamore/tcell/v2 v2.9.0
 	github.com/rivo/tview v0.0.0-20250625164341-a4a78f1e05cb
 	github.com/stretchr/testify v1.11.0
