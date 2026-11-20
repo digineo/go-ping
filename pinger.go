@@ -23,7 +23,7 @@ var sequence uint32
 // Pinger is a instance for ICMP echo requests
 type Pinger struct {
 	LogUnexpectedPackets bool   // increases log verbosity
-	Id                   uint16 // ICMP identifier for privileged sockets
+	Id                   uint16 // ICMP identifier, ignored for unprivileged sockets on Linux
 	SequenceCounter      *uint32
 
 	payload   Payload

@@ -124,10 +124,13 @@ func (pinger *Pinger) sendRequest(destination *net.IPAddr, req request) (uint32,
 	id := pinger.Id
 	var dst net.Addr = destination
 	if addr, ok := conn.LocalAddr().(*net.UDPAddr); ok {
-		// The kernel uses this socket's port as the ICMP identifier.
-		// IPv4 and IPv6 sockets can have different identifiers.
-		id = uint16(addr.Port)
 		dst = &net.UDPAddr{IP: destination.IP, Zone: destination.Zone}
+		// Linux replaces the ICMP identifier with this socket's port, so
+		// IPv4 and IPv6 sockets can have different identifiers. Darwin
+		// reports port 0 and sends our identifier unchanged.
+		if addr.Port != 0 {
+			id = uint16(addr.Port)
+		}
 	}
 	seq := uint16(atomic.AddUint32(pinger.SequenceCounter, 1))
 	idseq := makeIDSeq(id, seq)

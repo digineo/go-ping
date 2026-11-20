@@ -46,8 +46,8 @@ On Linux, the process's group must be allowed by
 sudo sysctl -w 'net.ipv4.ping_group_range=0 2147483647'
 ```
 
-Unprivileged sockets use their own ICMP identifiers; `Pinger.Id` only controls
-the identifier for privileged sockets.
+On Linux, unprivileged sockets use their own ICMP identifiers and ignore
+`Pinger.Id`. Darwin uses `Pinger.Id` for both socket types.
 
 The tests use IPv4 and IPv6 loopback addresses. Set `RUN_UNPRIVILEGED=1` to
 require unprivileged sockets to be available, and `RUN_PRIVILEGED=1` to enable
