@@ -49,6 +49,9 @@ sudo sysctl -w 'net.ipv4.ping_group_range=0 2147483647'
 On Linux, unprivileged sockets use their own ICMP identifiers and ignore
 `Pinger.Id`. Darwin uses `Pinger.Id` for both socket types.
 
+On Linux, unprivileged sockets do not receive ICMP errors such as
+"destination unreachable". An unreachable target results in a timeout instead.
+
 The tests use IPv4 and IPv6 loopback addresses. Set `RUN_UNPRIVILEGED=1` to
 require unprivileged sockets to be available, and `RUN_PRIVILEGED=1` to enable
 the tests that require root or `CAP_NET_RAW`.
